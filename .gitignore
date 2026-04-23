@@ -1,0 +1,55 @@
+# === Python / Backend ===
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === Secrets — NEVER commit these ===
+backend/.env
+.env
+*.env
+
+# === Database files ===
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+*.db
+*.sqlite
+
+# === macOS system files ===
+.DS_Store
+**/.DS_Store
+._*
+
+# === Editor / IDE directories ===
+.vscode/
+.cursor/
+.gemini/
+.claude/
+.codex/
+.adal/
+.agent/
+.agents/
+
+# === Backup files ===
+*.backup
+*.bak
+*.orig
+
+# === Logs ===
+*.log
+logs/
+
+# === Node (if ever added) ===
+node_modules/
+dist/
+.next/
+
+# === Drafts / WIP – not for production ===
+Drafts/
+Final Dripp copy/
+services draft 1 .html

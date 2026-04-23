@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dripp Media | Web Portfolio</title>
+
+    <!-- Fonts -->
+    <link
+        href="https://api.fontshare.com/v2/css?f[]=panchang@200,300,400,500,600,700,800&f[]=clash-display@200,300,400,500,600,700&display=swap"
+        rel="stylesheet">
+
+    <!-- Unicons -->
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css">
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --deep-black: #050505;
+            --pure-white: #ffffff;
+            --brand-yellow: #ebd73f;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background-color: var(--deep-black);
+            color: var(--pure-white);
+            font-family: 'Clash Display', sans-serif;
+            overflow-x: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--brand-yellow);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background-color 0.3s, border-color 0.3s;
+        }
+
+        .cursor.active {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: transparent;
+            backdrop-filter: blur(2px);
+        }
+
+        .cursor.hidden {
+            opacity: 0;
+        }
+
+        /* Navigation */
+        .nav-back {
+            position: fixed;
+            top: 40px;
+            left: 50px;
+            z-index: 100;
+            color: var(--pure-white);
+            text-decoration: none;
+            font-family: 'Panchang', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            mix-blend-mode: difference;
+            transition: color 0.3s ease;
+        }
+
+        .nav-back:hover {
+            color: var(--brand-yellow);
+        }
+
+        /* Header Info */
+        .portfolio-header {
+            position: fixed;
+            top: 40px;
+            right: 50px;
+            z-index: 100;
+            text-align: right;
+            pointer-events: none;
+            mix-blend-mode: difference;
+        }
+
+        .portfolio-header h1 {
+            font-family: 'Panchang', sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--pure-white);
+        }
+
+        .portfolio-header p {
+            font-size: 0.8rem;
+            color: var(--brand-yellow);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        /* Main Sliding Wrapper */
+        .slider-wrap {
+            width: 350vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 0 10vw;
+            will-change: transform;
+        }
+
+        /* Creative Card Design */
+        .web-card {
+            position: relative;
+            width: 70vw;
+            height: 70vh;
+            border-radius: 20px;
+            margin-right: 10vw;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+            transform-style: preserve-3d;
+            perspective: 1500px;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .web-card:hover {
+            border-color: rgba(235, 215, 63, 0.5);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(235, 215, 63, 0.15);
+        }
+
+        /* Iframe styling */
+        .web-iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 1;
+            border-radius: 20px;
+        }
+
+        /* Initial Overlay blocks interactions and shows info */
+        .card-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            background: linear-gradient(to top, rgba(5, 5, 5, 1) 0%, rgba(5, 5, 5, 0.4) 50%, transparent 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 50px;
+            transition: opacity 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .web-card:hover .card-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Card Content Text */
+        .card-meta {
+            transform: translateY(30px);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .web-card:hover .card-meta {
+            transform: translateY(0);
+        }
+
+        .card-badge {
+            align-self: flex-start;
+            background: rgba(235, 215, 63, 0.1);
+            color: var(--brand-yellow);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-family: 'Panchang', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border: 1px solid rgba(235, 215, 63, 0.3);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .card-title {
+            font-family: 'Panchang', sans-serif;
+            font-weight: 800;
+            font-size: 3rem;
+            color: var(--pure-white);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            line-height: 1.1;
+        }
+
+        .card-desc {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 60%;
+        }
+
+        /* Full Screen Button */
+        .fs-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 55px;
+            height: 55px;
+            background: rgba(5, 5, 5, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--pure-white);
+            font-size: 1.5rem;
+            z-index: 20;
+            opacity: 0;
+            transform: scale(0.8) translateY(-10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: none;
+        }
+
+        .web-card:hover .fs-btn {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+
+        .fs-btn:hover {
+            background: var(--brand-yellow);
+            color: var(--deep-black);
+            border-color: var(--brand-yellow);
+            transform: scale(1.1) translateY(0) !important;
+        }
+
+        /* Scroll instruction */
+        .scroll-instruction {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Panchang', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 30px;
+            background: linear-gradient(to bottom, var(--brand-yellow), transparent);
+            animation: scrolldown 2s infinite;
+        }
+
+        @keyframes scrolldown {
+            0% {
+                transform: scaleY(0);
+                transform-origin: top;
+            }
+
+            50% {
+                transform: scaleY(1);
+                transform-origin: top;
+            }
+
+            51% {
+                transform: scaleY(1);
+                transform-origin: bottom;
+            }
+
+            100% {
+                transform: scaleY(0);
+                transform-origin: bottom;
+            }
+        }
+
+        /* Background grid effect for the page */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 5vw 5vw;
+            z-index: -1;
+            pointer-events: none;
+            mask-image: linear-gradient(to bottom, transparent, black, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black, transparent);
+        }
+
+        /* In-Browser Fullscreen Modal */
+        #fs-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: var(--deep-black);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        #fs-modal.active {
+            display: block;
+            opacity: 1;
+        }
+
+        #fs-modal iframe {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+
+        .fs-close-btn {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            z-index: 100000;
+            background: rgba(5, 5, 5, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--pure-white);
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .fs-close-btn:hover {
+            background: var(--brand-yellow);
+            color: var(--deep-black);
+            border-color: var(--brand-yellow);
+            transform: scale(1.1);
+        }
+
+        @media screen and (max-width: 1000px) {
+            .web-card {
+                width: 85vw;
+                height: 60vh;
+                margin-right: 15vw;
+            }
+
+            .card-title {
+                font-size: 2rem;
+            }
+
+            .card-desc {
+                max-width: 90%;
+                font-size: 0.95rem;
+            }
+
+            .slider-wrap {
+                width: 450vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Target Frame for Full Screen Mode -->
+    <div id="fs-modal">
+        <button class="fs-close-btn" id="fs-close-btn"><i class="uil uil-times"></i></button>
+        <!-- iframe injected via JS -->
+    </div>
+
+    <!-- Ambient Background -->
+    <div class="bg-grid"></div>
+
+    <div class="cursor" id="cursor"></div>
+
+    <a href="Dripp Main.html" class="nav-back">← Explore More</a>
+
+    <div class="portfolio-header">
+        <h1>Web Portfolio</h1>
+        <p>Interactive Experiences</p>
+    </div>
+
+    <!-- ScrollTrigger Pin Wrapper -->
+    <div id="pin-container">
+        <!-- Horizontal Slider -->
+        <div class="slider-wrap" id="slider-wrap">
+
+            <!-- Card 1 -->
+            <div class="web-card">
+                <button class="fs-btn" title="Fullscreen"><i class="uil uil-expand-arrows"></i></button>
+                <iframe class="web-iframe" src="https://bruno-simon.com/" title="Bruno Portfolio"
+                    loading="lazy"></iframe>
+                <div class="card-overlay">
+                    <div>
+                        <div class="card-badge">Creative Portfolio</div>
+                    </div>
+                    <div class="card-meta">
+                        <div class="card-title">3D WebGL Portfolio</div>
+                        <div class="card-desc">Fully interactive 3D portfolio website. Drive a car around to explore the
+                            projects and experiences natively in the browser.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="web-card">
+                <button class="fs-btn" title="Fullscreen"><i class="uil uil-expand-arrows"></i></button>
+                <iframe class="web-iframe" src="https://www.w3schools.com/w3css/tryw3css_templates_portfolio.htm"
+                    title="Minimal Portfolio Template" loading="lazy"></iframe>
+                <div class="card-overlay">
+                    <div>
+                        <div class="card-badge">UI/UX Design</div>
+                    </div>
+                    <div class="card-meta">
+                        <div class="card-title">Minimal Studio</div>
+                        <div class="card-desc">A complete traditional portfolio template structure featuring a clean
+                            header, gallery layouts, contact forms, and footer.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="web-card">
+                <button class="fs-btn" title="Fullscreen"><i class="uil uil-expand-arrows"></i></button>
+                <iframe class="web-iframe" src="https://threejs.org/" title="Three JS" loading="lazy"></iframe>
+                <div class="card-overlay">
+                    <div>
+                        <div class="card-badge">Library Documentation</div>
+                    </div>
+                    <div class="card-meta">
+                        <div class="card-title">Interactive Agency</div>
+                        <div class="card-desc">A complete structured website containing navigation nodes, 3D element
+                            backgrounds, and deeply layered pages.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="web-card">
+                <button class="fs-btn" title="Fullscreen"><i class="uil uil-expand-arrows"></i></button>
+                <iframe class="web-iframe" src="https://www.w3schools.com/w3css/tryw3css_templates_startup.htm"
+                    title="Startup Template" loading="lazy"></iframe>
+                <div class="card-overlay">
+                    <div>
+                        <div class="card-badge">Corporate Web</div>
+                    </div>
+                    <div class="card-meta">
+                        <div class="card-title">Startup Company</div>
+                        <div class="card-desc">Full functional corporate landing page layout with team sections, smooth
+                            parallax backgrounds, pricing tables, and footer structure.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="scroll-instruction">
+        <span>Hover cards to play / Scroll to explore</span>
+        <div class="scroll-line"></div>
+    </div>
+
+    <script>
+        // Custom Cursor Logic
+        const cursor = document.getElementById('cursor');
+
+        window.addEventListener('mousemove', (e) => {
+            gsap.to(cursor, {
+                x: e.clientX,
+                y: e.clientY,
+                duration: 0.15,
+                ease: "power2.out"
+            });
+        });
+
+        // Hover effect for the cursor
+        const interactables = document.querySelectorAll('a, button, .card-overlay');
+        interactables.forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('active'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+        });
+
+        const fsButtons = document.querySelectorAll('.fs-btn');
+        fsButtons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => cursor.classList.add('active'));
+            btn.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+        });
+
+        // GSAP ScrollTrigger for horizontal scroll
+        gsap.registerPlugin(ScrollTrigger);
+
+        const sliderWrap = document.getElementById('slider-wrap');
+        const cards = gsap.utils.toArray('.web-card');
+
+        // Calculate the total horizontal scroll distance needed
+        function getScrollAmount() {
+            let wrapWidth = sliderWrap.scrollWidth;
+            return -(wrapWidth - window.innerWidth);
+        }
+
+        const tween = gsap.to(sliderWrap, {
+            x: getScrollAmount,
+            ease: "none"
+        });
+
+        ScrollTrigger.create({
+            trigger: "#pin-container",
+            start: "top top",
+            end: () => `+=${getScrollAmount() * -1}`,
+            pin: true,
+            animation: tween,
+            scrub: 1,
+            invalidateOnRefresh: true
+        });
+
+        // Add subtle 3D rotation parallax to cards based on horizontal scroll
+        cards.forEach((card, i) => {
+            gsap.fromTo(card,
+                { rotationY: 10, scale: 0.95 },
+                {
+                    rotationY: -10,
+                    scale: 1,
+                    ease: "none",
+                    scrollTrigger: {
+                        trigger: '#pin-container',
+                        start: () => "top top-=" + (i * window.innerWidth * 0.5),
+                        end: () => "top top-=" + ((i + 1) * window.innerWidth * 0.8),
+                        scrub: 1,
+                        invalidateOnRefresh: true,
+                        horizontal: false
+                    }
+                }
+            );
+        });
+
+        // Full Screen Functionality (In-Browser window maximization)
+        const fsBtns = document.querySelectorAll('.fs-btn');
+        const fsModal = document.getElementById('fs-modal');
+        const fsCloseBtn = document.getElementById('fs-close-btn');
+        let currentFullscreenCard = null;
+
+        // Hover effect for the modal close button
+        fsCloseBtn.addEventListener('mouseenter', () => cursor.classList.add('active'));
+        fsCloseBtn.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+
+        fsBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentFullscreenCard = btn.closest('.web-card');
+                const iframe = currentFullscreenCard.querySelector('.web-iframe');
+
+                // Move iframe directly into the modal container to detach it from 3D scaling
+                fsModal.appendChild(iframe);
+
+                // Expose and fade in modal
+                fsModal.style.display = 'block';
+                // Trigger reflow to guarantee CSS transition
+                void fsModal.offsetWidth;
+                fsModal.classList.add('active');
+            });
+        });
+
+        // Close logic
+        fsCloseBtn.addEventListener('click', () => {
+            if (currentFullscreenCard) {
+                const iframe = fsModal.querySelector('.web-iframe');
+                // Move the actual iframe back exactly where it was before the overlay to preserve state
+                const overlay = currentFullscreenCard.querySelector('.card-overlay');
+                currentFullscreenCard.insertBefore(iframe, overlay);
+            }
+
+            // Fade out
+            fsModal.classList.remove('active');
+            setTimeout(() => {
+                fsModal.style.display = 'none';
+                currentFullscreenCard = null;
+            }, 400); // Waits for the opacity transition
+        });
+
+        // Fix cursor when entering the iframe
+        const webCards = document.querySelectorAll('.web-card');
+        webCards.forEach(card => {
+            const overlay = card.querySelector('.card-overlay');
+
+            card.addEventListener('mouseenter', () => {
+                overlay.addEventListener('mouseleave', () => {
+                    cursor.classList.add('hidden');
+                }, { once: true });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                cursor.classList.remove('hidden');
+                overlay.addEventListener('mouseleave', () => {
+                    cursor.classList.add('hidden');
+                }, { once: true });
+            });
+        });
+
+        // Recalculate ScrollTrigger on Resize
+        window.addEventListener("resize", () => {
+            ScrollTrigger.refresh();
+        });
+    </script>
+</body>
+
+</html>
