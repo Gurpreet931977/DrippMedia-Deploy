@@ -32,17 +32,12 @@ else:
 app = Flask(__name__, static_folder=None)
 app.secret_key = os.getenv("SECRET_KEY", "dripp-secret-key-change-me")
 
-# Allow requests from Vercel deployment, localhost dev, and file:// (null origin)
-CORS(app, origins=[
-    "http://localhost", "http://127.0.0.1",
-    "http://localhost:5000", "http://127.0.0.1:5000",
-    "http://localhost:5001", "http://127.0.0.1:5001",
-    "null",                              # file:// protocol in browsers
-    r"https://.*\.vercel\.app",          # any Vercel preview URL
-    "https://dripp.media",               # custom domain (add yours if different)
-],
-     supports_credentials=True,
-     resources={r"/api/*": {"origins": "*"}})  # APIs open to all origins
+# Allow requests from the HTML file opened locally (file://) and localhost
+CORS(app, origins=["http://localhost", "http://127.0.0.1",
+                   "http://localhost:5000", "http://127.0.0.1:5000",
+                   "http://localhost:5001", "http://127.0.0.1:5001",
+                   "null"],  # 'null' origin = file:// in browsers
+     supports_credentials=True)
 
 # ─── Database Init ────────────────────────────────────────────────────────────
 sys.path.insert(0, BASE_DIR)

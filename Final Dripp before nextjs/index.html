@@ -38,7 +38,7 @@
             color: var(--pure-white);
             font-family: 'Clash Display', sans-serif;
             overflow-x: hidden;
-            width: 100vw;
+            width: 100%;
             opacity: 0;
             transition: opacity 0.5s ease-out;
         }
@@ -1001,11 +1001,13 @@
 
         .section-title {
             font-family: 'Panchang', sans-serif;
-            font-size: 4vw;
+            font-size: clamp(24px, 4vw, 64px);
             margin-bottom: 30px;
             text-transform: uppercase;
             line-height: 1;
             color: var(--pure-white);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .section-desc {
@@ -1015,71 +1017,295 @@
             font-weight: 300;
         }
 
-        /* --- NEW FOUNDER SECTION --- */
-        .founder-section {
-            padding: 100px 50px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* --- FOUNDER SEQUENCE SECTION --- */
+        .founder-sequence-section {
             position: relative;
-            z-index: 5;
             width: 100%;
+            z-index: 12;
+            padding: 120px 5vw;
+            overflow: hidden;
         }
 
         .founder-wrapper {
-            max-width: 1200px;
-            width: 100%;
             display: flex;
-            gap: 80px;
             align-items: center;
-        }
-
-        .founder-image {
-            flex: 1;
+            justify-content: space-between;
+            gap: 6vw;
+            max-width: 1400px;
+            margin: 0 auto;
             position: relative;
-            border-radius: 20px;
+        }
+
+        .founder-bg-text-meta {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translate(100vw, -50%);
+            /* Starts off-screen right */
+            font-family: 'Panchang', sans-serif;
+            font-size: 30vw;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+            letter-spacing: -0.05em;
+            pointer-events: none;
+            z-index: 1;
+            /* Below everything */
+            will-change: transform;
+        }
+
+        body.light-theme .founder-bg-text-meta {
+            -webkit-text-stroke: 1px rgba(0, 0, 0, 0.04);
+        }
+
+        .founder-text-block {
+            flex: 1;
+            max-width: 550px;
+            z-index: 4;
+        }
+
+        .founder-text-block .founder-label {
+            display: inline-block;
+            font-family: 'Panchang', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--brand-yellow);
+            margin-bottom: 16px;
+            padding: 6px 16px;
+            border: 1px solid rgba(235, 215, 63, 0.3);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            background: rgba(235, 215, 63, 0.06);
+        }
+
+        .founder-text-block .founder-heading {
+            font-family: 'Panchang', sans-serif;
+            font-size: clamp(2rem, 4.5vw, 4.2rem);
+            font-weight: 800;
+            text-transform: uppercase;
+            line-height: 1.05;
+            color: #fff;
+            margin-bottom: 28px;
+            letter-spacing: -1px;
+        }
+
+        body.light-theme .founder-text-block .founder-heading {
+            color: #000;
+        }
+
+        .founder-text-block .founder-heading span {
+            display: block;
+            color: var(--brand-yellow);
+            font-style: italic;
+        }
+
+        .founder-text-block .founder-bio {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 300;
+        }
+
+        body.light-theme .founder-text-block .founder-bio {
+            color: rgba(0, 0, 0, 0.9);
+        }
+
+        .founder-text-block .founder-bio span {
+            display: inline;
+            opacity: 0.2;
+            /* Words start dimmed */
+            transition: opacity 0.1s ease;
+        }
+
+        .founder-text-block .founder-bio+.founder-bio {
+            margin-top: 18px;
+        }
+
+        .founder-text-block .founder-accent {
+            width: 60px;
+            height: 3px;
+            background: var(--brand-yellow);
+            border-radius: 2px;
+            margin-bottom: 24px;
+        }
+
+        .founder-card-wrap {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1200px;
+            /* 3D perspective context */
+            z-index: 4;
+            opacity: 0;
+            /* Animated by GSAP */
+            transform: scale(0.95);
+        }
+
+        /* The 3D Interactive Card */
+        .founder-3d-card {
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 4 / 5;
+            background: rgba(20, 20, 20, 0.2);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-radius: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.15); /* Thin, sharp glass edge */
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(235, 215, 63, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transform: perspective(1000px) rotateY(5deg);
-            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.6s ease;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            /* Smooth interactive tilt */
+            will-change: transform;
         }
 
-        .founder-image:hover {
-            transform: perspective(1000px) rotateY(0deg) scale(1.02);
-            box-shadow: 0 0 60px rgba(235, 215, 63, 0.2);
+        body.light-theme .founder-3d-card {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.6); /* Clearer edge in light mode */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.1);
         }
 
-        .founder-image::after {
+        .founder-3d-card::before {
             content: '';
             position: absolute;
             inset: 0;
-            box-shadow: inset 0 0 40px rgba(5, 5, 5, 0.8);
+            border-radius: 36px;
+            /* Inner edge highlights to simulate glass thickness and a subtle surface glare */
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .core-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(255, 234, 0, 0.4) 0%, rgba(255, 234, 0, 0) 60%);
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            filter: blur(40px);
+            mix-blend-mode: normal;
             pointer-events: none;
         }
 
-        .founder-image img {
+        body.light-theme .core-glow {
+            mix-blend-mode: normal;
+            background: radial-gradient(circle, rgba(255, 234, 0, 0.6) 0%, rgba(255, 234, 0, 0) 60%);
+        }
+
+        .god-rays {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-conic-gradient(from 0deg,
+                    rgba(255, 234, 0, 0.7) 0deg 8deg,
+                    transparent 12deg 20deg);
+            -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 70%);
+            mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 70%);
+            transform: translate(-50%, -50%);
+            animation: rotateRays 30s linear infinite;
+            z-index: 1;
+            opacity: 0.9;
+            filter: blur(8px);
+            mix-blend-mode: normal;
+            pointer-events: none;
+        }
+
+        body.light-theme .god-rays {
+            mix-blend-mode: normal;
+            opacity: 1;
+            background: repeating-conic-gradient(from 0deg,
+                    rgba(255, 234, 0, 0.8) 0deg 8deg,
+                    transparent 12deg 20deg);
+        }
+
+        @keyframes rotateRays {
+            from {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        #founder-image {
             width: 100%;
-            height: auto;
-            display: block;
-            aspect-ratio: 4/5;
+            height: 100%;
             object-fit: cover;
-            filter: grayscale(80%) contrast(1.1);
-            transition: filter 0.5s ease;
+            object-position: center top;
+            /* Fit to card, don't crop the head */
+            border-radius: 36px;
+            position: relative;
+            z-index: 2;
         }
 
-        .founder-image:hover img {
-            filter: grayscale(0%) contrast(1.1);
-        }
+        @media (max-width: 900px) {
+            .founder-sequence-section {
+                padding: 60px 5vw;
+                /* When pinned, ensure the viewport is used efficiently */
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+            }
 
-        .founder-content {
-            flex: 1;
-            text-align: left;
+            .founder-wrapper {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 40px;
+                width: 100%;
+            }
+
+            .founder-text-block {
+                order: 2;
+                /* Text goes below card on mobile */
+                max-width: 100%;
+                margin: 0 auto;
+            }
+
+            .founder-text-block .founder-accent {
+                margin: 0 auto 24px;
+            }
+
+            .founder-card-wrap {
+                order: 1;
+                /* Card appears first (top) on mobile */
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .founder-3d-card {
+                max-width: min(340px, 80vw);
+                /* Disable 3D tilt on touch devices - no hover state on mobile */
+                transform: none !important;
+                touch-action: pan-y; /* Prevent scroll blocking */
+            }
+
+            .founder-bg-text-meta {
+                font-size: 50vw;
+                /* Bigger on mobile for impact */
+                -webkit-text-stroke: 1px rgba(255, 255, 255, 0.06);
+            }
         }
 
         .join-community-section {
             padding: 100px 20px;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             position: relative;
@@ -1732,6 +1958,49 @@
             mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 90%);
         }
 
+        .community-guideline {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .guideline-quote {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 0.9rem;
+            font-style: italic;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 0.05em;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border-left: 3px solid var(--brand-yellow);
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            line-height: 1.4;
+        }
+
+        .guideline-quote .highlight-text {
+            color: var(--brand-yellow);
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .mobile-only {
+                display: block;
+            }
+        }
+
         .f-pill {
             position: absolute;
             top: 50%;
@@ -1910,28 +2179,37 @@
             overflow: visible;
         }
 
-        /* Scroll wrapper — this is the only element that scrolls */
+        /* Scroll wrapper - this is the only element that scrolls */
         .chip-scroll {
-            max-height: 280px;
+            max-height: 320px;
             overflow-y: auto;
-            overflow-x: visible;
+            overflow-x: hidden;
             scrollbar-width: thin;
             scrollbar-color: rgba(235, 215, 63, 0.2) transparent;
+            /* Expand viewport clipping box to fit massive glows without losing layout alignment */
+            margin: -20px -10px -25px -20px;
+            padding: 20px 10px 25px 20px;
         }
 
-        .chip-scroll::-webkit-scrollbar { width: 4px; }
+        .chip-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+
         .chip-scroll::-webkit-scrollbar-thumb {
             background: rgba(235, 215, 63, 0.2);
             border-radius: 4px;
         }
-        .chip-scroll::-webkit-scrollbar-track { background: transparent; }
 
-        /* Chip panel — layout only, NO overflow clipping */
+        .chip-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* Chip panel */
         .chip-panel {
             display: none;
             flex-wrap: wrap;
-            gap: 10px;
-            padding: 6px 4px 6px 4px;
+            gap: 12px;
+            padding: 0;
             overflow: visible;
         }
 
@@ -1978,14 +2256,14 @@
             transform: translateY(-2px);
         }
 
-        /* Spin the + on hover — same feel as the theme toggle button */
+        /* Spin the + on hover - same feel as the theme toggle button */
         .custom-chip:not(.selected):hover::after {
             transform: rotate(360deg) scale(1.2);
             background: rgba(235, 215, 63, 0.35);
             color: var(--brand-yellow);
             transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-                        background 0.3s ease,
-                        color 0.3s ease;
+                background 0.3s ease,
+                color 0.3s ease;
         }
 
         .custom-chip:active {
@@ -2369,7 +2647,7 @@
             left: 50%;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(0,0,0,0.2);
+            border: 3px solid rgba(0, 0, 0, 0.2);
             border-top-color: var(--deep-black);
             border-radius: 50%;
             transform: translate(-50%, -50%) rotate(0deg);
@@ -2377,7 +2655,9 @@
         }
 
         @keyframes spin {
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
         }
 
         #contact-services-list {
@@ -2696,7 +2976,7 @@
             }
 
             .section-title {
-                font-size: 10vw;
+                font-size: clamp(24px, 10vw, 48px);
                 margin-bottom: 20px;
             }
 
@@ -2757,16 +3037,12 @@
                 opacity: 1 !important;
                 margin: 0 auto;
             }
+
             /* Card flip support for mobile tap-to-flip */
             .card-inner {
                 width: 100%;
                 height: 100%;
-                transition: transform 0.6s ease;
                 transform-style: preserve-3d !important;
-            }
-
-            .card-wrapper.flipped .card-inner {
-                transform: rotateY(180deg) !important;
             }
 
             .face-front,
@@ -2783,6 +3059,7 @@
             .face-back .face-bg {
                 background: rgb(10, 10, 10) !important;
             }
+
             .face-back {
                 transform: rotateY(180deg);
             }
@@ -2967,18 +3244,8 @@
                 padding: 2px;
             }
 
-            .founder-wrapper {
-                flex-direction: column;
-                gap: 40px;
-            }
-
-            .founder-section,
             .join-community-section {
                 padding: 60px 20px;
-            }
-
-            .founder-content {
-                text-align: center;
             }
         }
 
@@ -3153,17 +3420,15 @@
         }
 
         /* ============================================
-           SERVICES SECTION — LIGHT MODE
+           SERVICES SECTION - LIGHT MODE
         ============================================ */
 
         body.light-theme .services-section {
-            background: linear-gradient(
-                to bottom,
-                transparent,
-                rgba(235, 215, 63, 0.07) 20%,
-                rgba(235, 215, 63, 0.07) 80%,
-                transparent
-            );
+            background: linear-gradient(to bottom,
+                    transparent,
+                    rgba(235, 215, 63, 0.07) 20%,
+                    rgba(235, 215, 63, 0.07) 80%,
+                    transparent);
         }
 
         /* Section headings */
@@ -3365,14 +3630,6 @@
             color: var(--deep-black);
         }
 
-        body.light-theme .founder-section .section-title {
-            color: var(--deep-black);
-        }
-
-        body.light-theme .founder-section .section-desc {
-            color: rgba(0, 0, 0, 0.8);
-        }
-
         body.light-theme .community-wrapper {
             background: rgba(5, 5, 5, 0.85);
             backdrop-filter: blur(20px);
@@ -3383,15 +3640,6 @@
 
         body.light-theme .info-container {
             background: linear-gradient(to bottom, transparent 0%, rgba(235, 215, 63, 0.05) 15%, rgba(235, 215, 63, 0.05) 80%, transparent 100%);
-        }
-
-        body.light-theme .founder-image {
-            border-color: rgba(235, 215, 63, 0.5);
-            box-shadow: 0 0 40px rgba(235, 215, 63, 0.2);
-        }
-
-        body.light-theme .founder-image::after {
-            box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.2);
         }
 
         body.light-theme .btn-primary {
@@ -3485,7 +3733,7 @@
         }
 
         /* ============================================
-           MOBILE OPTIMIZATION — COMPONENTS 2, 3, 4, 5, 8
+           MOBILE OPTIMIZATION - COMPONENTS 2, 3, 4, 5, 8
            All rules below are additive and gated behind
            media queries. Desktop experience is unchanged.
         ============================================ */
@@ -3559,14 +3807,7 @@
             }
 
             /* Prevent sticky 3D transforms */
-            .founder-image:hover {
-                transform: perspective(1000px) rotateY(5deg);
-                box-shadow: 0 0 50px rgba(235, 215, 63, 0.1);
-            }
 
-            .founder-image:hover img {
-                filter: grayscale(80%) contrast(1.1);
-            }
 
             /* Prevent sticky community card lift */
             .community-wrapper:hover {
@@ -3688,7 +3929,7 @@
             }
 
             .section-title {
-                font-size: 8vw;
+                font-size: clamp(24px, 8vw, 42px);
             }
 
             .hero-sub {
@@ -3700,13 +3941,7 @@
                 font-size: 5.5vw;
             }
 
-            .founder-section {
-                padding: 60px 16px;
-            }
 
-            .founder-wrapper {
-                gap: 30px;
-            }
 
             .join-community-section {
                 padding: 60px 16px;
@@ -3780,6 +4015,7 @@
 
         /* --- Component 4: prefers-reduced-motion accessibility --- */
         @media (prefers-reduced-motion: reduce) {
+
             *,
             *::before,
             *::after {
@@ -3826,10 +4062,12 @@
             <li><a href="#about" class="nav-link">About</a></li>
             <li>
                 <div class="c-nav-group">
-                    <a href="#community" class="c-nav-btn c-community" onclick="document.getElementById('community').scrollIntoView({behavior: 'smooth'})">
+                    <a href="#community" class="c-nav-btn c-community"
+                        onclick="document.getElementById('community').scrollIntoView({behavior: 'smooth'})">
                         <span class="c-txt-wrap"><span class="c-txt" data-text="Community">Community</span></span>
                     </a>
-                    <a href="#contact" class="c-nav-btn c-talk" onclick="document.getElementById('contact').scrollIntoView({behavior: 'smooth'})">
+                    <a href="#contact" class="c-nav-btn c-talk"
+                        onclick="document.getElementById('contact').scrollIntoView({behavior: 'smooth'})">
                         <span class="c-txt-wrap"><span class="c-txt" data-text="Let's Talk">Let's Talk</span></span>
                         <svg class="c-arrow" viewBox="0 0 24 24">
                             <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"
@@ -3883,7 +4121,7 @@
             <span class="word" id="word2">MEDIA</span>
         </h1>
         <div class="hero-sub tooltip-container">
-            Creative Agency
+            We are a creative agency
             <div class="creative-tooltip">
                 <div class="tooltip-sparkle s1"></div>
                 <div class="tooltip-sparkle s2"></div>
@@ -4066,7 +4304,7 @@
             <div class="service-header">
                 <span class="section-label">03.5 / SERVICES</span>
                 <h2 class="section-title">What We Do</h2>
-                <p class="service-intro">Click any service that interests you — it'll be added to your quote below.</p>
+                <p class="service-intro">Click any service that interests you - it'll be added to your quote below.</p>
             </div>
 
             <!-- Floating Services Cloud -->
@@ -4184,106 +4422,122 @@
 
                     <!-- Chip Panels -->
                     <div class="chip-scroll">
-                    <div class="chip-panels">
-                        <div class="chip-panel active" data-panel="video">
-                            <!-- Only on-location / production services -->
-                            <div class="custom-chip" data-service="Music Video Shoot">Music Video Shoot</div>
-                            <div class="custom-chip" data-service="Corporate Video Shoot">Corporate Video Shoot</div>
-                            <div class="custom-chip" data-service="Commercial Shoot">Commercial Shoot</div>
-                            <div class="custom-chip" data-service="Event Coverage">Event Coverage</div>
-                            <div class="custom-chip" data-service="School Videography">School Videography</div>
-                            <div class="custom-chip" data-service="Drone Footage">Drone Footage</div>
-                            <div class="custom-chip" data-service="Real Estate Videography">Real Estate Videography</div>
-                            <div class="custom-chip" data-service="Sports Videography">Sports Videography</div>
-                            <div class="custom-chip" data-service="Fashion Video Shoot">Fashion Video Shoot</div>
-                            <div class="custom-chip" data-service="Short Film Production">Short Film Production</div>
-                            <div class="custom-chip" data-service="Testimonial Shoot">Testimonial Shoot</div>
-                            <div class="custom-chip" data-service="Live Stream Setup">Live Stream Setup</div>
-                            <div class="custom-chip" data-service="Behind the Scenes">Behind the Scenes</div>
-                        </div>
-                        <div class="chip-panel" data-panel="photo">
-                            <div class="custom-chip" data-service="Concert Photography">Concert Photography</div>
-                            <div class="custom-chip" data-service="Corporate Headshots">Corporate Headshots</div>
-                            <div class="custom-chip" data-service="Product Photography">Product Photography</div>
-                            <div class="custom-chip" data-service="Event Photography">Event Photography</div>
-                            <div class="custom-chip" data-service="Real Estate Photography">Real Estate Photography</div>
-                            <div class="custom-chip" data-service="Fashion Photography">Fashion Photography</div>
-                            <div class="custom-chip" data-service="Food Photography">Food Photography</div>
-                            <div class="custom-chip" data-service="Sports Photography">Sports Photography</div>
-                        </div>
-                        <div class="chip-panel" data-panel="post">
-                            <!-- All editing, delivery-format, mixing, and post services -->
-                            <div class="custom-chip" data-service="Podcast Editing">Podcast Editing</div>
-                            <div class="custom-chip" data-service="Documentary Editing">Documentary Editing</div>
-                            <div class="custom-chip" data-service="YouTube Video Editing">YouTube Video Editing</div>
-                            <div class="custom-chip" data-service="Instagram Reels Editing">Instagram Reels Editing</div>
-                            <div class="custom-chip" data-service="TikTok Video Editing">TikTok Video Editing</div>
-                            <div class="custom-chip" data-service="YouTube Shorts Editing">YouTube Shorts Editing</div>
-                            <div class="custom-chip" data-service="Explainer Video Editing">Explainer Video Editing</div>
-                            <div class="custom-chip" data-service="Product Video Editing">Product Video Editing</div>
-                            <div class="custom-chip" data-service="Training Video Editing">Training Video Editing</div>
-                            <div class="custom-chip" data-service="Video Color Grading">Video Color Grading</div>
-                            <div class="custom-chip" data-service="Subtitles & Captions">Subtitles & Captions</div>
-                            <div class="custom-chip" data-service="Motion Graphics">Motion Graphics</div>
-                            <div class="custom-chip" data-service="VFX & Green Screen">VFX & Green Screen</div>
-                            <div class="custom-chip" data-service="Sound Mixing">Sound Mixing</div>
-                            <div class="custom-chip" data-service="Thumbnail Design">Thumbnail Design</div>
-                            <div class="custom-chip" data-service="Video Ads">Video Ads</div>
-                            <div class="custom-chip" data-service="YouTube Chapters">YouTube Chapters</div>
-                            <div class="custom-chip" data-service="Podcast Chapters">Podcast Chapters</div>
-                        </div>
-                        <div class="chip-panel" data-panel="design">
-                            <div class="custom-chip" data-service="Logo Design">Logo Design</div>
-                            <div class="custom-chip" data-service="Brand Identity">Brand Identity</div>
-                            <div class="custom-chip" data-service="Poster Design">Poster Design</div>
-                            <div class="custom-chip" data-service="T-Shirt & Merch Design">T-Shirt & Merch Design</div>
-                            <div class="custom-chip" data-service="Social Media Graphics">Social Media Graphics</div>
-                            <div class="custom-chip" data-service="Album Artwork">Album Artwork</div>
-                            <div class="custom-chip" data-service="Flyer Design">Flyer Design</div>
-                            <div class="custom-chip" data-service="Business Cards">Business Cards</div>
-                            <div class="custom-chip" data-service="Banner & Signage">Banner & Signage</div>
-                            <div class="custom-chip" data-service="Pitch Deck Design">Pitch Deck Design</div>
-                            <div class="custom-chip" data-service="Presentation Design">Presentation Design</div>
-                            <div class="custom-chip" data-service="Mascot Design">Mascot Design</div>
-                            <div class="custom-chip" data-service="Packaging Design">Packaging Design</div>
-                            <div class="custom-chip" data-service="Menu Design">Menu Design</div>
-                            <div class="custom-chip" data-service="Event Branding">Event Branding</div>
-                            <div class="custom-chip" data-service="Streetwear Lookbooks">Streetwear Lookbooks</div>
-                        </div>
-                        <div class="chip-panel" data-panel="web">
-                            <div class="custom-chip" data-service="Website Design">Website Design</div>
-                            <div class="custom-chip" data-service="3D Website Design">3D Website Design</div>
-                            <div class="custom-chip" data-service="eCommerce Website">eCommerce Website</div>
-                            <div class="custom-chip" data-service="Shopify Store">Shopify Store</div>
-                            <div class="custom-chip" data-service="UI/UX Design">UI/UX Design</div>
-                            <div class="custom-chip" data-service="Landing Pages">Landing Pages</div>
-                            <div class="custom-chip" data-service="SEO Optimization">SEO Optimization</div>
-                            <div class="custom-chip" data-service="App UI Design">App UI Design</div>
-                            <div class="custom-chip" data-service="Social Media Strategy">Social Media Strategy</div>
-                            <div class="custom-chip" data-service="App Development">App Development</div>
-                            <div class="custom-chip" data-service="UX Research">UX Research</div>
-                            <div class="custom-chip" data-service="B2B Proposals">B2B Proposals</div>
-                        </div>
-                        <div class="chip-panel" data-panel="animation">
-                            <div class="custom-chip" data-service="2D Animation">2D Animation</div>
-                            <div class="custom-chip" data-service="3D Animation">3D Animation</div>
-                            <div class="custom-chip" data-service="3D Product Renders">3D Product Renders</div>
-                            <div class="custom-chip" data-service="Animated Logo">Animated Logo</div>
-                            <div class="custom-chip" data-service="Whiteboard Animation">Whiteboard Animation</div>
-                            <div class="custom-chip" data-service="Virtual Reality (VR)">Virtual Reality (VR)</div>
-                            <div class="custom-chip" data-service="Augmented Reality (AR)">Augmented Reality (AR)</div>
-                        </div>
-                        <div class="chip-panel" data-panel="social">
-                            <div class="custom-chip" data-service="Meta Management">Meta Management</div>
-                            <div class="custom-chip" data-service="YouTube Management">YouTube Management</div>
-                            <div class="custom-chip" data-service="Ads Management">Ads Management</div>
-                            <div class="custom-chip" data-service="Google Business Profile">Google Business Profile</div>
-                            <div class="custom-chip" data-service="Social Media Strategy">Social Media Strategy</div>
-                            <div class="custom-chip" data-service="Content Scheduling">Content Scheduling</div>
-                            <div class="custom-chip" data-service="Community Management">Community Management</div>
-                            <div class="custom-chip" data-service="Influencer Outreach">Influencer Outreach</div>
-                        </div>
-                    </div><!-- /chip-panels -->
+                        <div class="chip-panels">
+                            <div class="chip-panel active" data-panel="video">
+                                <!-- Only on-location / production services -->
+                                <div class="custom-chip" data-service="Music Video Shoot">Music Video Shoot</div>
+                                <div class="custom-chip" data-service="Corporate Video Shoot">Corporate Video Shoot
+                                </div>
+                                <div class="custom-chip" data-service="Commercial Shoot">Commercial Shoot</div>
+                                <div class="custom-chip" data-service="Event Coverage">Event Coverage</div>
+                                <div class="custom-chip" data-service="School Videography">School Videography</div>
+                                <div class="custom-chip" data-service="Drone Footage">Drone Footage</div>
+                                <div class="custom-chip" data-service="Real Estate Videography">Real Estate Videography
+                                </div>
+                                <div class="custom-chip" data-service="Sports Videography">Sports Videography</div>
+                                <div class="custom-chip" data-service="Fashion Video Shoot">Fashion Video Shoot</div>
+                                <div class="custom-chip" data-service="Short Film Production">Short Film Production
+                                </div>
+                                <div class="custom-chip" data-service="Testimonial Shoot">Testimonial Shoot</div>
+                                <div class="custom-chip" data-service="Live Stream Setup">Live Stream Setup</div>
+                                <div class="custom-chip" data-service="Behind the Scenes">Behind the Scenes</div>
+                            </div>
+                            <div class="chip-panel" data-panel="photo">
+                                <div class="custom-chip" data-service="Concert Photography">Concert Photography</div>
+                                <div class="custom-chip" data-service="Corporate Headshots">Corporate Headshots</div>
+                                <div class="custom-chip" data-service="Product Photography">Product Photography</div>
+                                <div class="custom-chip" data-service="Event Photography">Event Photography</div>
+                                <div class="custom-chip" data-service="Real Estate Photography">Real Estate Photography
+                                </div>
+                                <div class="custom-chip" data-service="Fashion Photography">Fashion Photography</div>
+                                <div class="custom-chip" data-service="Food Photography">Food Photography</div>
+                                <div class="custom-chip" data-service="Sports Photography">Sports Photography</div>
+                            </div>
+                            <div class="chip-panel" data-panel="post">
+                                <!-- All editing, delivery-format, mixing, and post services -->
+                                <div class="custom-chip" data-service="Podcast Editing">Podcast Editing</div>
+                                <div class="custom-chip" data-service="Documentary Editing">Documentary Editing</div>
+                                <div class="custom-chip" data-service="YouTube Video Editing">YouTube Video Editing
+                                </div>
+                                <div class="custom-chip" data-service="Instagram Reels Editing">Instagram Reels Editing
+                                </div>
+                                <div class="custom-chip" data-service="TikTok Video Editing">TikTok Video Editing</div>
+                                <div class="custom-chip" data-service="YouTube Shorts Editing">YouTube Shorts Editing
+                                </div>
+                                <div class="custom-chip" data-service="Explainer Video Editing">Explainer Video Editing
+                                </div>
+                                <div class="custom-chip" data-service="Product Video Editing">Product Video Editing
+                                </div>
+                                <div class="custom-chip" data-service="Training Video Editing">Training Video Editing
+                                </div>
+                                <div class="custom-chip" data-service="Video Color Grading">Video Color Grading</div>
+                                <div class="custom-chip" data-service="Subtitles & Captions">Subtitles & Captions</div>
+                                <div class="custom-chip" data-service="Motion Graphics">Motion Graphics</div>
+                                <div class="custom-chip" data-service="VFX & Green Screen">VFX & Green Screen</div>
+                                <div class="custom-chip" data-service="Sound Mixing">Sound Mixing</div>
+                                <div class="custom-chip" data-service="Thumbnail Design">Thumbnail Design</div>
+                                <div class="custom-chip" data-service="Video Ads">Video Ads</div>
+                                <div class="custom-chip" data-service="YouTube Chapters">YouTube Chapters</div>
+                                <div class="custom-chip" data-service="Podcast Chapters">Podcast Chapters</div>
+                            </div>
+                            <div class="chip-panel" data-panel="design">
+                                <div class="custom-chip" data-service="Logo Design">Logo Design</div>
+                                <div class="custom-chip" data-service="Brand Identity">Brand Identity</div>
+                                <div class="custom-chip" data-service="Poster Design">Poster Design</div>
+                                <div class="custom-chip" data-service="T-Shirt & Merch Design">T-Shirt & Merch Design
+                                </div>
+                                <div class="custom-chip" data-service="Social Media Graphics">Social Media Graphics
+                                </div>
+                                <div class="custom-chip" data-service="Album Artwork">Album Artwork</div>
+                                <div class="custom-chip" data-service="Flyer Design">Flyer Design</div>
+                                <div class="custom-chip" data-service="Business Cards">Business Cards</div>
+                                <div class="custom-chip" data-service="Banner & Signage">Banner & Signage</div>
+                                <div class="custom-chip" data-service="Pitch Deck Design">Pitch Deck Design</div>
+                                <div class="custom-chip" data-service="Presentation Design">Presentation Design</div>
+                                <div class="custom-chip" data-service="Mascot Design">Mascot Design</div>
+                                <div class="custom-chip" data-service="Packaging Design">Packaging Design</div>
+                                <div class="custom-chip" data-service="Menu Design">Menu Design</div>
+                                <div class="custom-chip" data-service="Event Branding">Event Branding</div>
+                                <div class="custom-chip" data-service="Streetwear Lookbooks">Streetwear Lookbooks</div>
+                            </div>
+                            <div class="chip-panel" data-panel="web">
+                                <div class="custom-chip" data-service="Website Design">Website Design</div>
+                                <div class="custom-chip" data-service="3D Website Design">3D Website Design</div>
+                                <div class="custom-chip" data-service="eCommerce Website">eCommerce Website</div>
+                                <div class="custom-chip" data-service="Shopify Store">Shopify Store</div>
+                                <div class="custom-chip" data-service="UI/UX Design">UI/UX Design</div>
+                                <div class="custom-chip" data-service="Landing Pages">Landing Pages</div>
+                                <div class="custom-chip" data-service="SEO Optimization">SEO Optimization</div>
+                                <div class="custom-chip" data-service="App UI Design">App UI Design</div>
+                                <div class="custom-chip" data-service="Social Media Strategy">Social Media Strategy
+                                </div>
+                                <div class="custom-chip" data-service="App Development">App Development</div>
+                                <div class="custom-chip" data-service="UX Research">UX Research</div>
+                                <div class="custom-chip" data-service="B2B Proposals">B2B Proposals</div>
+                            </div>
+                            <div class="chip-panel" data-panel="animation">
+                                <div class="custom-chip" data-service="2D Animation">2D Animation</div>
+                                <div class="custom-chip" data-service="3D Animation">3D Animation</div>
+                                <div class="custom-chip" data-service="3D Product Renders">3D Product Renders</div>
+                                <div class="custom-chip" data-service="Animated Logo">Animated Logo</div>
+                                <div class="custom-chip" data-service="Whiteboard Animation">Whiteboard Animation</div>
+                                <div class="custom-chip" data-service="Virtual Reality (VR)">Virtual Reality (VR)</div>
+                                <div class="custom-chip" data-service="Augmented Reality (AR)">Augmented Reality (AR)
+                                </div>
+                            </div>
+                            <div class="chip-panel" data-panel="social">
+                                <div class="custom-chip" data-service="Meta Management">Meta Management</div>
+                                <div class="custom-chip" data-service="YouTube Management">YouTube Management</div>
+                                <div class="custom-chip" data-service="Ads Management">Ads Management</div>
+                                <div class="custom-chip" data-service="Google Business Profile">Google Business Profile
+                                </div>
+                                <div class="custom-chip" data-service="Social Media Strategy">Social Media Strategy
+                                </div>
+                                <div class="custom-chip" data-service="Content Scheduling">Content Scheduling</div>
+                                <div class="custom-chip" data-service="Community Management">Community Management</div>
+                                <div class="custom-chip" data-service="Influencer Outreach">Influencer Outreach</div>
+                            </div>
+                        </div><!-- /chip-panels -->
                     </div><!-- /chip-scroll -->
                 </div>
                 <div class="builder-right">
@@ -4295,7 +4549,8 @@
                         <div class="empty-receipt">No services selected...</div>
                     </div>
                     <div class="receipt-footer">
-                        <a href="#" class="custom-quote-btn" id="custom-quote-btn" onclick="openContactModal(event, true)">
+                        <a href="#" class="custom-quote-btn" id="custom-quote-btn"
+                            onclick="openContactModal(event, true)">
                             Request Quote
                         </a>
                     </div>
@@ -4306,25 +4561,41 @@
 
 
 
-    <div class="info-container" id="about">
-        <!-- FOUNDER SECTION -->
-        <section class="founder-section">
-            <div class="founder-wrapper">
-                <div class="founder-image">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=774&q=80"
-                        alt="Founder of Dripp Media" />
-                </div>
-                <div class="founder-content">
-                    <span class="section-label">04 / THE VISION</span>
-                    <h2 class="section-title">Meet the Founder</h2>
-                    <p class="section-desc">
-                        A visionary bridging the gap between surreal imagination and digital reality. Leading Dripp
-                        Media with an uncompromising dedication to visual excellence and algorithmic dominance. We don't
-                        just follow trends; we architect them.
-                    </p>
+    <!-- FOUNDER SEQUENCE SECTION (outside info-container to prevent z-index overlap) -->
+    <!-- FOUNDER SEQUENCE SECTION -->
+    <section class="founder-sequence-section" id="founder-pin-section">
+        <div class="founder-bg-text-meta" id="founder-meta-bg">META</div>
+        <div class="founder-wrapper">
+            <div class="founder-text-block" id="founder-text-block">
+                <span class="founder-label">04 / THE VISION</span>
+                <div class="founder-accent"></div>
+                <h2 class="founder-heading">Meet the<span>Founder.</span></h2>
+                <p class="founder-bio">
+                    I am Gurpreet, often known as Meta Gurpreet. At 18, I stepped away from formal education to learn
+                    and build something that actually dictates digital culture rather than just participating in it.
+                    While my title is Founder and CEO of Dripp Media, my foundation is behind the screen. I am, at my
+                    core, a visual artist, a video editor, web designer and graphic designer obsessed with the
+                    mechanics of attention.
+                </p>
+                <p class="founder-bio">
+                    I built this agency because I understood that premium aesthetics are entirely useless if they do not
+                    drive retention and conversion. I do not just oversee operations, I set the visual standard. I took
+                    the unconventional path so Dripp Media could deliver unconventional, high impact results. We don't
+                    do ordinary. We engineer content that commands the room.
+                </p>
+            </div>
+            <div class="founder-card-wrap" id="founder-card-wrap">
+                <div class="founder-3d-card" id="founder-3d-card">
+                    <div class="core-glow"></div>
+                    <div class="god-rays"></div>
+                    <img id="founder-image" src="Founder Image/Founder image transparent.png"
+                        alt="Meta Gurpreet - Founder">
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
+
+    <div class="info-container" id="about">
 
         <!-- JOIN COMMUNITY SECTION -->
         <section class="join-community-section" id="community">
@@ -4368,6 +4639,9 @@
                 </div>
             </div>
 
+            <div class="community-guideline mobile-only">
+                <span class="guideline-quote">"Don't touch the <span class="highlight-text">bubbles(people)</span> - they will go away"</span>
+            </div>
             <div class="community-wrapper">
                 <span class="section-label">05 / THE COLLECTIVE</span>
                 <h2 class="section-title">Join the Creative Community</h2>
@@ -4377,7 +4651,8 @@
                     landscape. Pure creative chaos awaits.
                 </p>
                 <div style="margin-top: 40px;">
-                    <button class="attract-btn" data-default-text="Join Dripp Community" onclick="openCommunityModal(event)">
+                    <button class="attract-btn" data-default-text="Join Dripp Community"
+                        onclick="openCommunityModal(event)">
                         <span class="attract-btn-content">
                             <span class="btn-text" style="position:relative; z-index:2;">Join Dripp <span
                                     class="morph-word"><span class="morph-word-inner"><span
@@ -4523,7 +4798,8 @@
                 </div>
                 <div class="form-group">
                     <label>Message</label>
-                    <textarea name="message" class="form-input" placeholder="Tell us what you're building..."></textarea>
+                    <textarea name="message" class="form-input"
+                        placeholder="Tell us what you're building..."></textarea>
                 </div>
                 <button type="submit" class="modal-submit" id="contact-submit">Send Message</button>
             </form>
@@ -4542,7 +4818,8 @@
                 </div>
                 <div class="form-group">
                     <label>Your Expertise</label>
-                    <input type="text" name="expertise" class="form-input" placeholder="e.g. Designer, Editor, Developer" required>
+                    <input type="text" name="expertise" class="form-input"
+                        placeholder="e.g. Designer, Editor, Developer" required>
                 </div>
                 <button type="submit" class="modal-submit" id="community-submit">Join Now</button>
             </form>
@@ -4846,7 +5123,7 @@
                 )
                 .fromTo('.nav-links li',
                     { opacity: 0, y: -10 },
-                    { 
+                    {
                         opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "power3.out",
                         onComplete: () => {
                             initHeroScroll();
@@ -4966,8 +5243,19 @@
                 this.grid = [];
                 this.mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
+                this.lastWidth = window.innerWidth;
                 this.resize();
-                window.addEventListener('resize', () => this.resize());
+                window.addEventListener('resize', () => {
+                    const currentlyMobile = window.innerWidth <= 900;
+                    if (currentlyMobile) {
+                        if (window.innerWidth !== this.lastWidth) {
+                            this.lastWidth = window.innerWidth;
+                            this.resize();
+                        }
+                    } else {
+                        this.resize();
+                    }
+                });
                 window.addEventListener('mousemove', (e) => {
                     this.mouse.x = e.clientX;
                     this.mouse.y = e.clientY;
@@ -5092,18 +5380,18 @@
         // --- HERO SCROLL ANIMATION ---
         function initHeroScroll() {
             const isMobileHero = window.innerWidth < 900;
-            const heroTl = gsap.timeline({ 
-                scrollTrigger: { 
-                    trigger: ".hero", 
-                    start: "top top", 
-                    end: "bottom center", 
+            const heroTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: ".hero",
+                    start: "top top",
+                    end: "bottom center",
                     scrub: 1,
                     invalidateOnRefresh: true
-                } 
+                }
             });
             const heroParallaxX = isMobileHero ? 80 : 300;
             const heroParallaxY = isMobileHero ? 50 : 100;
-            
+
             if (!isMobileHero) {
                 heroTl.to("#word1", { x: -heroParallaxX, y: -heroParallaxY, opacity: 0, scale: 1.5, rotate: -15, filter: "blur(20px)" }, 0);
                 heroTl.to("#word2", { x: heroParallaxX, y: heroParallaxY, opacity: 0, scale: 1.5, rotate: 15, filter: "blur(20px)" }, 0);
@@ -5286,14 +5574,20 @@
                     }
 
                     // Toggle flip
-                    card.classList.toggle('flipped');
+                    const isFlipped = card.classList.toggle('flipped');
+                    gsap.to(card.querySelector('.card-inner'), {
+                        rotationY: isFlipped ? 180 : 0,
+                        duration: 0.6,
+                        ease: "power2.inOut",
+                        overwrite: "auto"
+                    });
 
                     // Vibrate on flip
                     if (navigator.vibrate) navigator.vibrate([40]);
                 });
             });
 
-            // Tooltip: tap to toggle on "Creative Agency" button
+            // Tooltip: tap to toggle on "We are a creative agency" button
             const heroSub = document.querySelector('.hero-sub');
             if (heroSub) {
                 heroSub.addEventListener('click', (e) => {
@@ -5378,7 +5672,7 @@
             });
         });
 
-        const textSections = document.querySelectorAll('.founder-section, .join-community-section, .client-connection-section, .services-section');
+        const textSections = document.querySelectorAll('.join-community-section, .client-connection-section, .services-section');
         textSections.forEach(sec => {
             gsap.fromTo(sec.children,
                 { y: 50, opacity: 0 },
@@ -5446,10 +5740,6 @@
         // Keep light version by default on mobile
         const themeBtn = document.getElementById('theme-switch');
 
-        if (window.innerWidth <= 900) {
-            document.body.classList.add('light-theme');
-            navbar.style.background = "rgba(255, 255, 255, 0.6)"; 
-        }
         if (themeBtn) {
             themeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -5532,7 +5822,7 @@
             const parts = formatter.formatToParts(new Date());
             const get = (type) => parts.find(p => p.type === type)?.value ?? '00';
             let h = get('hour');
-            // '24' can appear for midnight in some locales — normalize to '00'
+            // '24' can appear for midnight in some locales - normalize to '00'
             if (h === '24') h = '00';
             return {
                 h: h.padStart(2, '0'),
@@ -5562,13 +5852,13 @@
 
             const tCol = secTens.querySelector('.digit-col');
             const oCol = secOnes.querySelector('.digit-col');
-            
+
             if (!tCol || !oCol) return;
 
             if (s === 0) {
                 tCol.style.transform = `translateY(0%)`;
                 oCol.style.transform = `translateY(-${(10 * 100) / 11}%)`;
-                
+
                 setTimeout(() => {
                     if (getTimeParts(visitorTimezone).s === 0) {
                         oCol.style.transition = 'none';
@@ -5583,7 +5873,7 @@
             }
         }
 
-        // Fetch visitor timezone from IP geolocation (silent — no visible label)
+        // Fetch visitor timezone from IP geolocation (silent - no visible label)
         async function fetchIPTimezone() {
             try {
                 const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
@@ -5598,7 +5888,7 @@
         if (document.getElementById('clock-hours')) {
             updateLiveClock();
             setInterval(updateLiveClock, 1000);
-            fetchIPTimezone(); // Async — updates timezone label once resolved
+            fetchIPTimezone(); // Async - updates timezone label once resolved
 
             gsap.fromTo(".live-clock-section",
                 { opacity: 0, scale: 0.95, y: 50 },
@@ -5616,20 +5906,19 @@
 
             // --- Zero-Gravity Physics State ---
             const pillState = [];
-            let physicsRAF = null;
-            let containerW = 0, containerH = 0;
+            let physicsInitialized = false;
+            let containerW = cloudContainer.offsetWidth || window.innerWidth;
+            let containerH = cloudContainer.offsetHeight || 550;
 
             function initPhysics() {
-                containerW = cloudContainer.offsetWidth;
-                containerH = cloudContainer.offsetHeight;
-
+                // Scatter pills across the container on init
                 fPills.forEach((pill, i) => {
                     // Reset any GSAP inline transforms
                     gsap.set(pill, { clearProps: 'all' });
                     pill.style.position = 'absolute';
                     pill.style.left = '50%';
                     pill.style.top = '50%';
-                    pill.style.touchAction = 'none';
+                    pill.style.touchAction = 'pan-y'; /* Allow vertical scrolling even if pill is touched */
                     pill.style.cursor = 'grab';
                     pill.style.userSelect = 'none';
 
@@ -5648,63 +5937,47 @@
                     const py = (Math.random() - 0.5) * containerH * 0.80;
 
                     // Randomized velocity per pill
-                    const baseSpeed = 0.3 + Math.random() * 0.9;
+                    const baseSpeed = 0.4 + Math.random() * 1.0; // Slightly faster base
                     const angle = Math.random() * Math.PI * 2;
 
                     // Per-pill physics personality
-                    const pillMaxSpeed = 1.0 + Math.random() * 1.8;    // 1.0 – 2.8
-                    const pillNudgeChance = 0.02 + Math.random() * 0.06; // 2% – 8%
-                    const pillNudgeForce = 0.10 + Math.random() * 0.16; // 0.10 – 0.26
-                    
+                    const pillMaxSpeed = 1.2 + Math.random() * 1.8;
+                    const pillNudgeChance = 0.03 + Math.random() * 0.07; // 3% – 10%
+                    const pillNudgeForce = 0.12 + Math.random() * 0.18;
+
                     const shouldHide = (window.innerWidth <= 900) && ((i % 3) !== 0);
-                    if (shouldHide) {
-                        pill.style.display = 'none';
-                    } else {
-                        pill.style.display = 'inline-flex';
-                    }
+                    pill.style.display = shouldHide ? 'none' : 'inline-flex';
 
-                    if (pillState[i]) {
-                        pillState[i].x = px;
-                        pillState[i].y = py;
-                        pillState[i].vx = Math.cos(angle) * baseSpeed;
-                        pillState[i].vy = Math.sin(angle) * baseSpeed;
-                        pillState[i].scale = pillScale;
-                        pillState[i].baseOpacity = pillOpacity;
-                        pillState[i].baseZIndex = pillZIndex;
-                        pillState[i].maxSpeed = pillMaxSpeed;
-                        pillState[i].nudgeChance = pillNudgeChance;
-                        pillState[i].nudgeForce = pillNudgeForce;
-                        pillState[i].isActive = !shouldHide;
-                    } else {
-                        pillState.push({
-                            el: pill,
-                            isActive: !shouldHide,
-                            x: px, y: py,
-                            vx: Math.cos(angle) * baseSpeed,
-                            vy: Math.sin(angle) * baseSpeed,
-                            scale: pillScale,
-                            baseOpacity: pillOpacity,
-                            baseZIndex: pillZIndex,
-                            maxSpeed: pillMaxSpeed,
-                            nudgeChance: pillNudgeChance,
-                            nudgeForce: pillNudgeForce,
-                            isDragging: false,
-                            lastClickTime: 0,
-                            startPX: 0, startPY: 0,
-                            startEX: 0, startEY: 0,
-                            prevPX: 0, prevPY: 0,
-                            dragVX: 0, dragVY: 0
-                        });
-                    }
+                    pillState.push({
+                        el: pill,
+                        isActive: !shouldHide,
+                        x: px, y: py,
+                        vx: Math.cos(angle) * baseSpeed,
+                        vy: Math.sin(angle) * baseSpeed,
+                        scale: pillScale,
+                        baseOpacity: pillOpacity,
+                        baseZIndex: pillZIndex,
+                        maxSpeed: pillMaxSpeed,
+                        nudgeChance: pillNudgeChance,
+                        nudgeForce: pillNudgeForce,
+                        isDragging: false,
+                        lastClickTime: 0,
+                        startPX: 0, startPY: 0,
+                        startEX: 0, startEY: 0,
+                        prevPX: 0, prevPY: 0,
+                        dragVX: 0, dragVY: 0,
+                        hw: pill.offsetWidth / 2 || 60,
+                        hh: pill.offsetHeight / 2 || 20
+                    });
 
-                    const st = pillState[i] || pillState[pillState.length-1];
+                    const st = pillState[i];
                     _applyTransform(pill, st);
                     _attachDragListeners(pill, st);
                 });
 
-                // Start the physics loop
-                if (physicsRAF) cancelAnimationFrame(physicsRAF);
-                _physicsTick();
+                // Start the physics loop via GSAP ticker for maximum stability
+                gsap.ticker.add(_physicsTick);
+                physicsInitialized = true;
             }
 
             function _applyTransform(el, s) {
@@ -5716,11 +5989,6 @@
             const _isMobilePhysics = window.innerWidth <= 900;
 
             function _physicsTick() {
-                _physicsFrameCount++;
-
-                containerW = cloudContainer.offsetWidth;
-                containerH = cloudContainer.offsetHeight;
-
                 pillState.forEach(s => {
                     if (!s.isActive || s.isDragging) return;
 
@@ -5729,6 +5997,10 @@
                         s.vx += (Math.random() - 0.5) * s.nudgeForce;
                         s.vy += (Math.random() - 0.5) * s.nudgeForce;
                     }
+
+                    // Ambient persistent drift - ensures they NEVER stop fully
+                    s.vx += (Math.random() - 0.5) * 0.01;
+                    s.vy += (Math.random() - 0.5) * 0.01;
 
                     // Per-pill speed cap
                     const speed = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
@@ -5741,66 +6013,62 @@
                     s.y += s.vy;
 
                     // Boundary: Infinite loop teleportation with edge fade
-                    const hw = s.el.offsetWidth / 2;
-                    const hh = s.el.offsetHeight / 2;
-                    // Slightly outside container view to ensure it teleports invisibly
+                    const hw = s.hw;
+                    const hh = s.hh;
                     const wrapLimitX = containerW / 2 + hw + 20;
                     const wrapLimitY = containerH / 2 + hh + 20;
 
-                    if (s.x > wrapLimitX)  s.x = -wrapLimitX;
+                    if (s.x > wrapLimitX) s.x = -wrapLimitX;
                     else if (s.x < -wrapLimitX) s.x = wrapLimitX;
-                    
-                    if (s.y > wrapLimitY)  s.y = -wrapLimitY;
+
+                    if (s.y > wrapLimitY) s.y = -wrapLimitY;
                     else if (s.y < -wrapLimitY) s.y = wrapLimitY;
 
                     // Dynamic fade near the edges of the container
                     const distX = Math.abs(s.x) / (containerW / 2);
                     const distY = Math.abs(s.y) / (containerH / 2);
                     const maxDist = Math.max(distX, distY);
-                    
-                    const fadeStart = 0.8; // starts fading at 80% distance from center
+
+                    const fadeStart = 0.8;
                     if (maxDist > fadeStart && !s.el.classList.contains('selected')) {
                         const fadeFactor = Math.max(0, 1 - ((maxDist - fadeStart) / (1 - fadeStart)));
-                        // Square the fadeFactor for a smoother, less linear dropoff
-                        s.el.style.opacity = s.baseOpacity * fadeFactor * fadeFactor; 
+                        s.el.style.opacity = s.baseOpacity * fadeFactor * fadeFactor;
                         s.el.style.pointerEvents = fadeFactor < 0.1 ? 'none' : 'auto';
                     } else if (s.el.classList.contains('selected')) {
-                        s.el.style.opacity = 1; // keep selected solid
+                        s.el.style.opacity = 1;
                         s.el.style.pointerEvents = 'auto';
                     } else {
                         s.el.style.opacity = s.baseOpacity;
                         s.el.style.pointerEvents = 'auto';
                     }
 
-                    // Very light damping so they never fully stop
+                    // Very light damping
                     s.vx *= 0.998;
                     s.vy *= 0.998;
 
                     _applyTransform(s.el, s);
                 });
-
-                physicsRAF = requestAnimationFrame(_physicsTick);
             }
 
             function _attachDragListeners(pill, s) {
                 let lastClickTime = 0;
 
-                    pill.addEventListener('pointerdown', (e) => {
-                        e.stopPropagation();
-                        s.isDragging = true;
-                        s.startPX = e.clientX;
-                        s.startPY = e.clientY;
-                        s.startEX = s.x;
-                        s.startEY = s.y;
-                        s.prevPX = e.clientX;
-                        s.prevPY = e.clientY;
-                        s.dragVX = 0;
-                        s.dragVY = 0;
-                        pill.setPointerCapture(e.pointerId);
-                        pill.style.cursor = 'grabbing';
-                        // Bring to absolute front during drag
-                        pill.style.zIndex = 2000;
-                    });
+                pill.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    s.isDragging = true;
+                    s.startPX = e.clientX;
+                    s.startPY = e.clientY;
+                    s.startEX = s.x;
+                    s.startEY = s.y;
+                    s.prevPX = e.clientX;
+                    s.prevPY = e.clientY;
+                    s.dragVX = 0;
+                    s.dragVY = 0;
+                    pill.setPointerCapture(e.pointerId);
+                    pill.style.cursor = 'grabbing';
+                    // Bring to absolute front during drag
+                    pill.style.zIndex = 2000;
+                });
 
                 pill.addEventListener('pointermove', (e) => {
                     if (!s.isDragging) return;
@@ -5820,7 +6088,7 @@
                     s.isDragging = false;
                     pill.releasePointerCapture(e.pointerId);
                     pill.style.cursor = 'grab';
-                    
+
                     // Restore z-index logic: if selected, keep at 100, else return to baseZIndex
                     if (!pill.classList.contains('selected')) {
                         pill.style.zIndex = s.baseZIndex;
@@ -5850,7 +6118,7 @@
                                 if (typeof window.handlePillAction === 'function') window.handlePillAction(e, pill);
                             } else {
                                 lastClickTime = now;
-                                // Single tap visual hint — gentle brightness pulse
+                                // Single tap visual hint - gentle brightness pulse
                                 gsap.fromTo(pill,
                                     { filter: 'brightness(1.5)' },
                                     { filter: 'brightness(1)', duration: 0.4, ease: 'power2.out' }
@@ -5861,18 +6129,43 @@
                 });
             }
 
-            // Delayed init so layout has painted
-            setTimeout(initPhysics, 200);
+            // Instead of rigid setTimeout that can capture height=0 before fonts/layout are ready, 
+            // use a ResizeObserver to explicitly wait for true valid dimensions to initialize physics.
+            const ro = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    if (entry.target === cloudContainer) {
+                        const newW = entry.contentRect.width || cloudContainer.offsetWidth;
+                        const newH = entry.contentRect.height || cloudContainer.offsetHeight;
 
-            // Recompute on resize
-            let resizeTimer;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => {
-                    if (physicsRAF) cancelAnimationFrame(physicsRAF);
-                    initPhysics();
-                }, 250);
+                        if (newW > 0 && newH > 0) {
+                            containerW = newW;
+                            containerH = newH;
+
+                            // Initialize once layout guarantees space
+                            if (!physicsInitialized) {
+                                initPhysics();
+                            } else {
+                                // Update dimensions for wrapping
+                                containerW = newW;
+                                containerH = newH;
+                                // Safely handle responsive window resizing without destroying pill x/y
+                                fPills.forEach((pill, i) => {
+                                    const shouldHide = (window.innerWidth <= 900) && ((i % 3) !== 0);
+                                    if (pillState[i]) {
+                                        pillState[i].isActive = !shouldHide;
+                                        pill.style.display = shouldHide ? 'none' : 'inline-flex';
+                                        pillState[i].hw = pill.offsetWidth / 2 || 60;
+                                        pillState[i].hh = pill.offsetHeight / 2 || 20;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
             });
+            ro.observe(cloudContainer);
+            // Kickstart immediately even if ResizeObserver hasn't fired
+            initPhysics();
         }
 
         // --- CUSTOM PACKAGE BUILDER (RECEIPT LOGIC) ---
@@ -5920,21 +6213,21 @@
                     const svc = btn.dataset.service;
                     if (selectedServices.has(svc)) {
                         selectedServices.delete(svc);
-                        
+
                         // Deselect corresponding floating pill
                         document.querySelectorAll('.f-pill').forEach(pill => {
                             if (pill.textContent.replace(' ✓', '').trim() === svc) {
                                 pill.classList.remove('selected');
                             }
                         });
-                        
+
                         // Deselect corresponding builder chip
                         document.querySelectorAll('.custom-chip').forEach(chip => {
                             if (chip.dataset.service === svc) {
                                 chip.classList.remove('selected');
                             }
                         });
-                        
+
                         updateReceipt();
                     }
                 });
@@ -5985,11 +6278,11 @@
         function switchTabTo(panelId) {
             const tab = document.querySelector(`.builder-tab[data-tab="${panelId}"]`);
             if (!tab || tab.classList.contains('active')) return;
-            
+
             const targetPanel = document.querySelector(`.chip-panel[data-panel="${panelId}"]`);
             const currentPanel = document.querySelector('.chip-panel.active') || document.querySelector('.chip-panel[style*="display: flex"]');
             const panelsContainer = document.querySelector('.chip-panels');
-            
+
             if (!targetPanel || !currentPanel || targetPanel === currentPanel) return;
 
             // Immediately update visual tab states
@@ -6002,7 +6295,7 @@
                 if (p !== currentPanel && p !== targetPanel) {
                     gsap.killTweensOf(p);
                     p.classList.remove('active');
-                    p.style.cssText = ''; 
+                    p.style.cssText = '';
                 }
             });
 
@@ -6016,13 +6309,13 @@
             targetPanel.style.top = '0';
             targetPanel.style.left = '0';
             targetPanel.style.width = '100%';
-            
+
             const endHeight = targetPanel.offsetHeight;
 
             // 3. Clear existing tweens and prep new panel
             gsap.killTweensOf([panelsContainer, currentPanel, targetPanel]);
             gsap.set(targetPanel, { opacity: 0, scale: 0.95, y: 15 });
-            
+
             // 4. Animate container height morph
             gsap.to(panelsContainer, {
                 height: endHeight,
@@ -6203,7 +6496,7 @@
                     // --- DE-SELECT: Smooth Jelly Shake-off ---
                     gsap.killTweensOf(chip);
                     gsap.timeline()
-                        .fromTo(chip, 
+                        .fromTo(chip,
                             { scaleX: 0.95, scaleY: 0.95 },
                             { scaleX: 1.2, scaleY: 0.8, duration: 0.12, ease: 'power2.out', force3D: true }
                         )
@@ -6241,13 +6534,13 @@
         });
 
         // Wire floating pills directly using global dual action handler
-        window.handlePillAction = function(e, pill) {
+        window.handlePillAction = function (e, pill) {
             const svc = pill.textContent.replace(' ✓', '').trim();
             if (selectedServices.has(svc)) {
                 // --- DE-SELECT: Smooth Jelly Shake-off ---
                 gsap.killTweensOf(pill);
                 gsap.timeline()
-                    .fromTo(pill, 
+                    .fromTo(pill,
                         { scaleX: 0.95, scaleY: 0.95 },
                         { scaleX: 1.2, scaleY: 0.8, duration: 0.12, ease: 'power2.out', force3D: true }
                     )
@@ -6291,7 +6584,7 @@
                 // First-time "Tour" smooth scroll to cart and back
                 const builder = document.getElementById('custom-builder');
                 const cloud = document.getElementById('floating-cloud');
-                
+
                 if (builder && !hasAutoScrolledToCart) {
                     hasAutoScrolledToCart = true;
                     setTimeout(() => {
@@ -6299,7 +6592,7 @@
                         if (target) {
                             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }
-                        
+
                         // Return to cloud after 0.5s pause (800ms total allows for downward scroll)
                         setTimeout(() => {
                             if (cloud) cloud.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -6328,18 +6621,18 @@
         const communitySubmit = document.getElementById('community-submit');
         const contactServicesList = document.getElementById('contact-services-list');
 
-        window.openContactModal = function(e, fromCart = false) {
+        window.openContactModal = function (e, fromCart = false) {
             if (e) e.preventDefault();
             contactModal.classList.add('active');
-            
+
             // Populate services from cart if applicable
             contactServicesList.innerHTML = '';
             contactForm.services.value = '{}'; // reset hidden field
-            
+
             if (fromCart && selectedServices.size > 0) {
                 const servicesObj = Object.fromEntries(selectedServices);
                 contactForm.services.value = JSON.stringify(servicesObj);
-                
+
                 selectedServices.forEach((qty, name) => {
                     const badge = document.createElement('div');
                     badge.className = 'selected-svc-badge';
@@ -6349,18 +6642,18 @@
             }
         }
 
-        window.closeContactModal = function() {
+        window.closeContactModal = function () {
             contactModal.classList.remove('active');
             // reset form out of view
-            setTimeout(() => contactForm.reset(), 400); 
+            setTimeout(() => contactForm.reset(), 400);
         }
 
-        window.openCommunityModal = function(e) {
+        window.openCommunityModal = function (e) {
             if (e) e.preventDefault();
             communityModal.classList.add('active');
         }
 
-        window.closeCommunityModal = function() {
+        window.closeCommunityModal = function () {
             communityModal.classList.remove('active');
             setTimeout(() => communityForm.reset(), 400);
         }
@@ -6386,7 +6679,7 @@
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             contactSubmit.classList.add('loading');
-            
+
             const payload = {
                 name: contactForm.name.value,
                 email: contactForm.email.value,
@@ -6400,7 +6693,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
+
                 if (res.ok) {
                     contactSubmit.innerText = 'Sent ✓';
                     contactSubmit.style.background = '#4CAF50';
@@ -6423,46 +6716,101 @@
             }
         });
 
-        communityForm.addEventListener('submit', async (e) => {
+        communityForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            communitySubmit.classList.add('loading');
-            
-            const payload = { 
-                email: communityForm.email.value,
-                expertise: communityForm.expertise.value 
-            };
 
-            try {
-                const res = await fetch(`${API_URL}/community`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (res.ok) {
-                    communitySubmit.innerText = 'Routing to WhatsApp...';
-                    communitySubmit.style.background = '#4CAF50';
-                    communitySubmit.style.color = '#fff';
-                    setTimeout(() => {
-                        window.location.href = 'https://chat.whatsapp.com/CEyxprdFx99E8eNrFoIIxP';
-                        closeCommunityModal();
-                        setTimeout(() => {
-                            communitySubmit.innerText = 'Join Now';
-                            communitySubmit.style = '';
-                            communitySubmit.classList.remove('loading');
-                        }, 500);
-                    }, 1500);
-                } else {
-                    const data = await res.json();
-                    alert(data.error || "Something went wrong.");
-                    communitySubmit.classList.remove('loading');
-                }
-            } catch (err) {
-                alert("Failed to connect to the server.");
-                communitySubmit.classList.remove('loading');
-            }
+            const email = communityForm.email.value.trim();
+            const expertise = communityForm.expertise ? communityForm.expertise.value.trim() : '';
+
+            if (!email) return;
+
+            communitySubmit.innerText = 'Routing to WhatsApp...';
+            communitySubmit.style.background = '#4CAF50';
+            communitySubmit.style.color = '#fff';
+            communitySubmit.disabled = true;
+
+            setTimeout(() => {
+                closeCommunityModal();
+                window.location.href = 'https://chat.whatsapp.com/CEyxprdFx99E8eNrFoIIxP';
+            }, 1000);
         });
+        // --- FOUNDER SEQUENCE CANVAS LOGIC ---
+        // --- FOUNDER SEQUENCE LOGIC ---
+        const fCard = document.getElementById("founder-3d-card");
+        const fWrap = document.getElementById("founder-card-wrap");
+
+        if (fCard && fWrap) {
+            // Kinetic Text Splitting
+            const bios = document.querySelectorAll('.founder-bio');
+            const allWords = [];
+            bios.forEach(bio => {
+                const words = bio.innerText.trim().split(/\s+/);
+                bio.innerHTML = ''; // Clear existing
+                words.forEach(word => {
+                    const span = document.createElement('span');
+                    span.innerText = word + ' ';
+                    bio.appendChild(span);
+                    allWords.push(span);
+                });
+            });
+
+            // Entry Animation
+            gsap.fromTo(".founder-label, .founder-accent, .founder-heading",
+                { opacity: 0, y: 20 },
+                { opacity: 1, y: 0, duration: 1, stagger: 0.1, ease: "power3.out", scrollTrigger: { trigger: ".founder-sequence-section", start: "top 70%" } }
+            );
+
+            gsap.to(fWrap, {
+                opacity: 1,
+                scale: 1,
+                duration: 1.2,
+                ease: "expo.out",
+                scrollTrigger: { trigger: ".founder-sequence-section", start: "top 70%" }
+            });
+
+            // Kinetic Typography Reveal tied to scroll
+            gsap.to(allWords, {
+                opacity: 1,
+                stagger: 0.05,
+                scrollTrigger: {
+                    trigger: ".founder-sequence-section",
+                    start: "top 60%",
+                    end: "center center",
+                    scrub: 1
+                }
+            });
+
+            // META Parallax
+            gsap.to("#founder-meta-bg", {
+                x: "-100vw", // Scroll to left
+                ease: "none",
+                scrollTrigger: {
+                    trigger: ".founder-sequence-section",
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: true
+                }
+            });
+
+            // 3D Interactivity / Parallax Tilt
+            fWrap.addEventListener('mousemove', (e) => {
+                const rect = fWrap.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Calculate rotation based on cursor position (-20 to 20 degrees)
+                const xRotation = ((y / rect.height) - 0.5) * -40;
+                const yRotation = ((x / rect.width) - 0.5) * 40;
+
+                fCard.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg) scale3d(1.02, 1.02, 1.02)`;
+            });
+
+            fWrap.addEventListener('mouseleave', () => {
+                fCard.style.transform = `rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+            });
+        }
 
     </script>
 </body>
+
 </html>

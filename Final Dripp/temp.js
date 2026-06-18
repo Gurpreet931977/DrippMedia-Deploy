@@ -1,633 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dripp Media | Graphic Portfolio</title>
-
-    <!-- Fonts -->
-    <link
-        href="https://api.fontshare.com/v2/css?f[]=panchang@200,300,400,500,600,700,800&f[]=clash-display@200,300,400,500,600,700&display=swap"
-        rel="stylesheet">
-
-    <!-- GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
-    <style>
-        :root {
-            --deep-black: #050505;
-            --pure-white: #ffffff;
-            --brand-yellow: #ebd73f;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            cursor: none;
-            user-select: none;
-        }
-
-        body {
-            background-color: var(--deep-black);
-            color: var(--pure-white);
-            font-family: 'Clash Display', sans-serif;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        /* Nav back button */
-        .nav-back {
-            position: fixed;
-            top: 40px;
-            left: 50px;
-            z-index: 100;
-            color: var(--pure-white);
-            text-decoration: none;
-            font-family: 'Panchang', sans-serif;
-            font-size: 0.8rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            mix-blend-mode: difference;
-            transition: color 0.3s ease;
-        }
-
-        .nav-back:hover {
-            color: var(--brand-yellow);
-        }
-
-        /* Custom Cursor */
-        .cursor {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--brand-yellow);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-            transition: width 0.3s, height 0.3s, background-color 0.3s;
-        }
-
-        .cursor.active {
-            width: 50px;
-            height: 50px;
-            background-color: rgba(235, 215, 63, 0.1);
-            backdrop-filter: blur(2px);
-        }
-
-        /* Wrapper matching React props specification */
-        #portfolio-showcase {
-            width: 100vw;
-            height: 100vh;
-            background-color: #0a0a0a;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .infinite-canvas {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 100%;
-            opacity: 0.9;
-            transition: opacity 0.5s ease;
-            transform-style: preserve-3d;
-        }
-
-        #portfolio-showcase:hover .infinite-canvas {
-            opacity: 1;
-        }
-
-        .canvas-item {
-            position: absolute;
-            top: 0;
-            left: 0;
-            background-color: #1a1a1a;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            transform: translate(-50%, -50%);
-            will-change: transform;
-        }
-
-        .canvas-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none;
-            transition: transform 0.5s ease;
-        }
-
-        .canvas-item:hover img {
-            transform: scale(1.05);
-        }
-
-        .canvas-item::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            pointer-events: none;
-        }
-
-        .drag-instruction {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.6rem;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.3);
-            pointer-events: none;
-            z-index: 10;
-            mix-blend-mode: difference;
-            transition: opacity 0.5s ease;
-        }
-
-        .drag-instruction.hidden {
-            opacity: 0 !important;
-        }
-
-        .features-list {
-            position: fixed;
-            top: 40px;
-            right: 50px;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            font-family: 'Panchang', sans-serif;
-            font-size: 0.6rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.6);
-            mix-blend-mode: difference;
-            text-align: right;
-            pointer-events: none;
-        }
-
-        .feature-item {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
-            transition: opacity 0.5s ease;
-        }
-
-        .feature-item.hidden {
-            opacity: 0 !important;
-            pointer-events: none;
-        }
-
-        .feature-key {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--brand-yellow);
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(235, 215, 63, 0.3);
-            font-weight: 600;
-        }
-
-        /* Tripp Sparkle Button (Uiverse JkHuger style via Dripp Brand Colors) */
-        .sp-wrapper {
-            position: fixed;
-            bottom: 40px;
-            left: 50px;
-            z-index: 100;
-        }
-
-        .sparkle-button {
-            --transition: 0.3s;
-            --spark: 1.8s;
-            --cut: 0.1em;
-            --active: 0;
-            --bg: radial-gradient(40% 50% at center 100%,
-                    hsl(53 calc(var(--active) * 97%) 72% / var(--active)),
-                    transparent),
-                radial-gradient(80% 100% at center 120%,
-                    hsl(53 calc(var(--active) * 97%) 70% / var(--active)),
-                    transparent),
-                hsl(53 calc(var(--active) * 97%) calc((var(--active) * 44%) + 12%));
-            background: var(--bg);
-            font-size: 0.75rem;
-            font-family: 'Panchang', sans-serif;
-            letter-spacing: 2px;
-            font-weight: 800;
-            border: 0;
-            cursor: pointer;
-            padding: 0.6em 1.25em;
-            display: flex;
-            align-items: center;
-            gap: 0.4em;
-            white-space: nowrap;
-            border-radius: 100px;
-            position: relative;
-            box-shadow: 0 0 calc(var(--active) * 3em) calc(var(--active) * 1em) hsl(53 97% 61% / 0.5),
-                0 0em 0 0 hsl(53 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
-                0 -0.05em 0 0 hsl(53 calc(var(--active) * 97%) calc(var(--active) * 60%)) inset;
-            transition: box-shadow var(--transition), scale var(--transition), background var(--transition);
-            scale: calc(1 + (var(--active) * 0.05));
-        }
-
-        .sparkle-button:active {
-            scale: 1;
-            transition: .3s;
-        }
-
-        .sparkle path {
-            color: hsl(0 0% calc((var(--active, 0) * 70%) + var(--base)));
-            transform-box: fill-box;
-            transform-origin: center;
-            fill: currentColor;
-            stroke: currentColor;
-            animation-delay: calc((var(--transition) * 1.5) + (var(--delay) * 1s));
-            animation-duration: 0.6s;
-            transition: color var(--transition);
-        }
-
-        .sparkle-button:is(:hover, :focus-visible, .active-tripp) path {
-            animation-name: bounce;
-        }
-
-        @keyframes bounce {
-
-            35%,
-            65% {
-                scale: var(--scale);
-            }
-        }
-
-        .sparkle path:nth-of-type(1) {
-            --scale: 0.5;
-            --delay: 0.1;
-            --base: 40%;
-        }
-
-        .sparkle path:nth-of-type(2) {
-            --scale: 1.5;
-            --delay: 0.2;
-            --base: 20%;
-        }
-
-        .sparkle path:nth-of-type(3) {
-            --scale: 2.5;
-            --delay: 0.35;
-            --base: 30%;
-        }
-
-        .sparkle-button:before {
-            content: "";
-            position: absolute;
-            inset: -0.2em;
-            z-index: -1;
-            border: 0.25em solid hsl(53 97% 50% / 0.5);
-            border-radius: 100px;
-            opacity: var(--active, 0);
-            transition: opacity var(--transition);
-        }
-
-        .spark {
-            position: absolute;
-            inset: 0;
-            border-radius: 100px;
-            rotate: 0deg;
-            overflow: hidden;
-            mask: linear-gradient(white, transparent 50%);
-            -webkit-mask: linear-gradient(white, transparent 50%);
-            animation: flip calc(var(--spark) * 2) infinite steps(2, end);
-        }
-
-        @keyframes flip {
-            to {
-                rotate: 360deg;
-            }
-        }
-
-        .spark:before {
-            content: "";
-            position: absolute;
-            width: 200%;
-            aspect-ratio: 1;
-            top: 0%;
-            left: 50%;
-            z-index: -1;
-            translate: -50% -15%;
-            rotate: 0;
-            transform: rotate(-90deg);
-            opacity: calc((var(--active)) + 0.4);
-            background: conic-gradient(from 0deg,
-                    transparent 0 340deg,
-                    white 360deg);
-            transition: opacity var(--transition);
-            animation: rotate var(--spark) linear infinite both;
-        }
-
-        .spark:after {
-            content: "";
-            position: absolute;
-            inset: var(--cut);
-            border-radius: 100px;
-        }
-
-        .backdrop {
-            position: absolute;
-            inset: var(--cut);
-            background: var(--bg);
-            border-radius: 100px;
-            transition: background var(--transition);
-        }
-
-        @keyframes rotate {
-            to {
-                transform: rotate(90deg);
-            }
-        }
-
-        .sparkle-button:is(:hover, :focus-visible, .active-tripp)~.particle-pen {
-            --active: 1;
-            --play-state: running;
-        }
-
-        .sparkle-button:is(:hover, :focus-visible, .active-tripp) {
-            --active: 1;
-            --play-state: running;
-        }
-
-        .particle-pen {
-            position: absolute;
-            width: 200%;
-            aspect-ratio: 1;
-            top: 50%;
-            left: 50%;
-            translate: -50% -50%;
-            mask: radial-gradient(white, transparent 65%);
-            -webkit-mask: radial-gradient(white, transparent 65%);
-            z-index: -1;
-            opacity: var(--active, 0);
-            transition: opacity var(--transition);
-            pointer-events: none;
-        }
-
-        .particle {
-            fill: white;
-            width: calc(var(--size, 0.25) * 1rem);
-            aspect-ratio: 1;
-            position: absolute;
-            top: calc(var(--y) * 1%);
-            left: calc(var(--x) * 1%);
-            opacity: var(--alpha, 1);
-            animation: float-out calc(var(--duration, 1) * 1s) calc(var(--delay) * -1s) infinite linear;
-            transform-origin: var(--origin-x, 1000%) var(--origin-y, 1000%);
-            z-index: -1;
-            animation-play-state: var(--play-state, paused);
-        }
-
-        .particle path {
-            fill: hsl(53 90% 70%);
-            stroke: none;
-        }
-
-        .particle:nth-of-type(even) {
-            animation-direction: reverse;
-        }
-
-        @keyframes float-out {
-            to {
-                rotate: 360deg;
-            }
-        }
-
-        .text {
-            translate: 2% -6%;
-            color: var(--brand-yellow);
-            transition: color var(--transition);
-            position: relative;
-            z-index: 2;
-        }
-
-        .sparkle-button:is(:hover, :focus-visible, .active-tripp) .text {
-            color: var(--deep-black);
-        }
-
-        .sparkle-button svg.particle {
-            inline-size: 1.25em;
-            translate: -25% -5%;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* 1D List View Mode transition class */
-        .list-view-mode .canvas-item {
-            position: relative;
-            transform: none !important;
-            margin: 0 0 20px 0;
-            width: 100% !important;
-            height: auto !important;
-            max-width: none;
-            border-radius: 4px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            display: inline-block;
-            /* Crucial for CSS column masonry */
-        }
-
-        /* Remove creative staggers to let native columns flow neatly */
-        .list-view-mode .canvas-item:nth-child(even),
-        .list-view-mode .canvas-item:nth-child(odd) {
-            transform: none !important;
-        }
-
-        .list-view-mode .canvas-item img {
-            width: 100%;
-            height: auto;
-            position: relative;
-            object-fit: cover;
-            /* Keeps image structurally sound without squeezing */
-            border-radius: 4px;
-            filter: none;
-            transition: transform 0.5s ease;
-            display: block;
-        }
-
-        .list-view-mode .canvas-item:hover img {
-            transform: scale(1.02);
-        }
-
-        .list-view-mode .infinite-canvas {
-            position: relative;
-            top: 0;
-            left: 0;
-            transform: none !important;
-            overflow-y: auto;
-            height: 100vh;
-            padding: 120px 5vw;
-            display: block;
-            column-count: 3;
-            column-gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .list-view-mode .infinite-canvas {
-                column-count: 2;
-            }
-        }
-
-        @media (max-width: 500px) {
-            .list-view-mode .infinite-canvas {
-                column-count: 1;
-            }
-        }
-
-        /* Specific View overlay for Double Click */
-        .specific-view-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            /* Lighter background for visibility */
-            z-index: 9000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-            backdrop-filter: blur(8px);
-            /* Lighter blur to see the space/grid behind it */
-            cursor: pointer;
-            /* Indicate it's clickable to close */
-        }
-
-        .specific-view-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .specific-view-img {
-            max-width: 90vw;
-            max-height: 90vh;
-            object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-            transform: scale(0.9);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .specific-view-overlay.active .specific-view-img {
-            transform: scale(1);
-        }
-
-        .close-specific-view {
-            position: absolute;
-            top: 40px;
-            right: 50px;
-            color: var(--pure-white);
-            font-family: 'Panchang', sans-serif;
-            font-size: 0.8rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            cursor: pointer;
-            pointer-events: auto;
-            transition: color 0.3s ease;
-        }
-
-        .close-specific-view:hover {
-            color: var(--brand-yellow);
-        }
-
-        /* Space Background Canvas */
-        #space-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-
-        /* Space Mode active state */
-        .space-mode-active #space-canvas {
-            opacity: 1;
-        }
-
-        .space-mode-active #portfolio-showcase {
-            background-color: transparent;
-            /* Show space behind */
-        }
-
-        .space-mode-active .canvas-item {
-            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
-            /* Ethereal glow in space */
-        }
-    </style>
-</head>
-
-<body>
-
-    <!-- 3D Space Background -->
-    <canvas id="space-canvas"></canvas>
-
-    <a href="index.html" class="nav-back">← Explore More</a>
-
-    <div class="sp-wrapper">
-        <button class="sparkle-button" id="tripp-toggle-btn">
-            <span class="spark"></span>
-            <span class="backdrop"></span>
-            <span class="text" id="tripp-btn-text">TRIPP</span>
-        </button>
-        <div class="particle-pen">
-            <svg class="particle" style="--x: 20; --y: 30; --duration: 1.5; --delay: 0.2; --alpha: 0.8; --size: 0.4;">
-                <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-            </svg>
-            <svg class="particle" style="--x: 80; --y: 20; --duration: 2; --delay: 0.5; --alpha: 0.5; --size: 0.3;">
-                <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-            </svg>
-            <svg class="particle" style="--x: 50; --y: 80; --duration: 1.2; --delay: 0.8; --alpha: 0.9; --size: 0.5;">
-                <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-            </svg>
-            <svg class="particle" style="--x: 10; --y: 90; --duration: 1.8; --delay: 1.2; --alpha: 0.6; --size: 0.2;">
-                <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-            </svg>
-            <svg class="particle" style="--x: 90; --y: 70; --duration: 1.4; --delay: 0.4; --alpha: 0.7; --size: 0.35;">
-                <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9L12 2Z" />
-            </svg>
-        </div>
-    </div>
-
-    <div class="features-list">
-        <div class="feature-item" id="reset-helper"><span>Reset View</span><span class="feature-key">Space</span></div>
-        <div class="feature-item" id="list-view-helper"><span>List View</span><span class="feature-key">Enter</span>
-        </div>
-        <div class="feature-item"><span>Specific View</span><span class="feature-key">Double Click</span></div>
-    </div>
-
-    <div class="cursor" id="cursor"></div>
-    <div class="drag-instruction" id="drag-msg">Drag / Scroll to Explore</div>
-
-    <!-- Specific View Overlay Container -->
-    <div class="specific-view-overlay" id="specific-view">
-        <div class="close-specific-view" id="close-specific">Close ×</div>
-        <img src="" class="specific-view-img" id="specific-img" alt="Specific View">
-    </div>
-
-    <!-- Drop-in wrapper mimicking user's React implementation -->
-    <div id="portfolio-showcase">
-        <div class="infinite-canvas" id="canvas-container">
-            <!-- Items injected by JS -->
-        </div>
-    </div>
-
-    <script>
         // Custom Cursor Logic
         const cursor = document.getElementById('cursor');
         window.addEventListener('mousemove', (e) => {
@@ -700,14 +71,22 @@
             init() {
                 for (let i = 0; i < this.numberOfImages; i++) {
                     const el = document.createElement('div');
-                    el.className = 'canvas-item';
+                    el.className = 'canvas-item is-loading';
 
                     const img = document.createElement('img');
+                    
+                    // Add loaded class when image successfully loads
+                    img.onload = () => {
+                        el.classList.remove('is-loading');
+                        img.classList.add('loaded');
+                    };
+
                     // Map to sequentially numbered images as requested
                     img.src = `${this.imageRootPath}/img${i + 1}.jpg`;
 
                     // Smart Fallback placeholder while user organizes their local photos
                     img.onerror = () => {
+                        img.onerror = null; // Prevent infinite loop
                         img.src = `https://picsum.photos/seed/${i + 15}/400/400`; // Fast lightweight load
                     };
 
@@ -826,6 +205,27 @@
 
                 // Keyboard interactions (Space to Reset, Enter to Toggle List, M to toggle Space)
                 this.isListView = false;
+
+                // Tap on Reset UI
+                const resetHelper = document.getElementById('reset-helper');
+                if (resetHelper) {
+                    resetHelper.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (!this.isListView && !document.getElementById('specific-view').classList.contains('active')) {
+                            gsap.to(this.state, {
+                                targetX: 0,
+                                targetY: 0,
+                                x: 0,
+                                y: 0,
+                                velX: 0,
+                                velY: 0,
+                                duration: 1.5,
+                                ease: "power3.inOut"
+                            });
+                        }
+                    });
+                }
+
                 window.addEventListener('keydown', (e) => {
                     // M: Toggle Space Mode
                     if (e.code === 'KeyM') {
@@ -868,7 +268,8 @@
                             showcase.classList.add('list-view-mode');
                             showcase.style.overflowY = 'auto'; // Enable native v-scroll
                             if (dragMsg) dragMsg.classList.add('hidden'); // Hide Drag msg completely in list
-                            document.getElementById('reset-helper').classList.add('hidden'); // Hide Spc helper
+                            const resetHelperNode = document.getElementById('reset-helper');
+                            if (resetHelperNode) resetHelperNode.classList.add('hidden'); // Hide Spc helper
                             if (spWrapper) spWrapper.style.display = 'none';
                             if (listViewHelperText) listViewHelperText.innerText = 'Infinite View';
 
@@ -882,7 +283,8 @@
                             showcase.classList.remove('list-view-mode');
                             showcase.style.overflowY = 'hidden';
                             if (dragMsg) dragMsg.classList.remove('hidden'); // Show Drag msg again
-                            document.getElementById('reset-helper').classList.remove('hidden');
+                            const resetHelperNode2 = document.getElementById('reset-helper');
+                            if (resetHelperNode2) resetHelperNode2.classList.remove('hidden');
                             if (spWrapper) spWrapper.style.display = 'block';
                             if (listViewHelperText) listViewHelperText.innerText = 'List View';
 
@@ -1111,45 +513,51 @@
 
             const isGoingTripp = !spaceModeActive;
             const liquidColor = isGoingTripp ? 'var(--brand-yellow)' : 'var(--deep-black)';
+            const _isMobileEffect = window.innerWidth <= 900;
 
-            // Add SVG filter for gooey drips if not present
-            if (!document.getElementById('goo-filter-svg')) {
-                const svgNS = "http://www.w3.org/2000/svg";
-                const svg = document.createElementNS(svgNS, "svg");
-                svg.id = "goo-filter-svg";
-                svg.style.position = "absolute";
-                svg.style.width = "0";
-                svg.style.height = "0";
-                svg.style.visibility = "hidden";
-                svg.innerHTML = `
-                    <defs>
-                        <filter id="goo">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
-                            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -15" result="goo" />
-                            <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-                        </filter>
-                    </defs>
-                `;
-                document.body.appendChild(svg);
-            }
-
-            // Create container with gooey filter
+            // Create container for spill animation
             const spillContainer = document.createElement('div');
             spillContainer.style.position = 'fixed';
-            spillContainer.style.inset = '-300px'; // Generous overflow for splatters
             spillContainer.style.zIndex = '50';
             spillContainer.style.pointerEvents = 'none';
-            spillContainer.style.filter = 'url(#goo)';
-            spillContainer.style.WebkitFilter = 'url(#goo)';
+
+            if (!_isMobileEffect) {
+                // Add SVG filter for gooey drips if not present (Desktop only - heavy on mobile)
+                if (!document.getElementById('goo-filter-svg')) {
+                    const svgNS = "http://www.w3.org/2000/svg";
+                    const svg = document.createElementNS(svgNS, "svg");
+                    svg.id = "goo-filter-svg";
+                    svg.style.position = "absolute";
+                    svg.style.width = "0";
+                    svg.style.height = "0";
+                    svg.style.visibility = "hidden";
+                    svg.innerHTML = `
+                        <defs>
+                            <filter id="goo">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -15" result="goo" />
+                                <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+                            </filter>
+                        </defs>
+                    `;
+                    document.body.appendChild(svg);
+                }
+                spillContainer.style.inset = '-300px'; // Generous overflow for splatters
+                spillContainer.style.filter = 'url(#goo)';
+                spillContainer.style.WebkitFilter = 'url(#goo)';
+            } else {
+                spillContainer.style.inset = '-150px'; // Increased inset for mobile to fix bottom gap
+            }
             document.body.appendChild(spillContainer);
 
             // Helper to create liquid blobs
             const createBlob = () => {
                 const drop = document.createElement('div');
                 drop.style.position = 'absolute';
-                // Offset origin by the -300px inset of the container
-                drop.style.left = (originX + 300) + 'px';
-                drop.style.top = (originY + 300) + 'px';
+                // Offset origin by the inset of the container
+                const insetOffset = _isMobileEffect ? 150 : 300;
+                drop.style.left = (originX + insetOffset) + 'px';
+                drop.style.top = (originY + insetOffset) + 'px';
                 drop.style.width = '0px';
                 drop.style.height = '0px';
                 drop.style.borderRadius = '50%';
@@ -1162,15 +570,15 @@
             };
 
             const mainBlob = createBlob();
-            // Count of splash droplets (12 for high performance and visual impact)
-            const droplets = Array.from({ length: 12 }).map(() => createBlob());
+            // Splash droplets (12 for desktop, 0 on mobile to prevent lag)
+            const droplets = _isMobileEffect ? [] : Array.from({ length: 12 }).map(() => createBlob());
 
             const maxDist = Math.hypot(
                 Math.max(originX, window.innerWidth - originX),
                 Math.max(originY, window.innerHeight - originY)
             );
             // Overshoot target size to cover screen completely despite goo erosion
-            const targetSize = maxDist * 2.8;
+            const targetSize = maxDist * (_isMobileEffect ? 4.5 : 2.8);
 
             btn.style.pointerEvents = 'none';
 
@@ -1253,7 +661,4 @@
         // Bind click to the new UI button
         document.getElementById('tripp-toggle-btn').addEventListener('click', toggleSpaceMode);
 
-    </script>
-</body>
-
-</html>
+    

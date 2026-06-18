@@ -40,23 +40,30 @@
 
         /* Nav back button */
         .nav-back {
-            position: fixed;
-            top: 40px;
-            left: 50px;
-            z-index: 100;
-            color: var(--pure-white);
-            text-decoration: none;
-            font-family: 'Panchang', sans-serif;
-            font-size: 0.8rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            mix-blend-mode: difference;
-            transition: color 0.3s ease;
-        }
+    position: fixed;
+    top: 30px;
+    left: 30px;
+    z-index: 9999;
+    color: var(--deep-black, #050505) !important;
+    background-color: var(--brand-yellow, #ebd73f);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(235, 215, 63, 0.4);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
 
-        .nav-back:hover {
-            color: var(--brand-yellow);
-        }
+.nav-back:hover {
+    transform: scale(1.1);
+    background-color: #fff;
+    color: #000 !important;
+}
 
         /* Custom Cursor */
         .cursor {
@@ -116,12 +123,75 @@
             will-change: transform;
         }
 
+        /* Creative Geometric Morphing Loader */
+        .canvas-item.is-loading {
+            background-color: #0a0a0a;
+        }
+
+        .canvas-item.is-loading::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%);
+            animation: creativeMorph 2.4s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+            z-index: 1;
+        }
+
+        .canvas-item.is-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: var(--brand-yellow);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulseDot 2.4s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        @keyframes creativeMorph {
+            0% {
+                border-radius: 0%;
+                transform: translate(-50%, -50%) rotate(0deg) scale(1);
+                border-color: rgba(255, 255, 255, 0.15);
+                border-width: 1px;
+            }
+            50% {
+                border-radius: 50%;
+                transform: translate(-50%, -50%) rotate(180deg) scale(1.4);
+                border-color: rgba(235, 215, 63, 0.6);
+                border-width: 2px;
+            }
+            100% {
+                border-radius: 0%;
+                transform: translate(-50%, -50%) rotate(360deg) scale(1);
+                border-color: rgba(255, 255, 255, 0.15);
+                border-width: 1px;
+            }
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        }
+
         .canvas-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             pointer-events: none;
-            transition: transform 0.5s ease;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+        }
+
+        .canvas-item img.loaded {
+            opacity: 1;
         }
 
         .canvas-item:hover img {
@@ -179,6 +249,8 @@
             align-items: center;
             justify-content: flex-end;
             gap: 10px;
+            pointer-events: auto;
+            cursor: pointer;
             transition: opacity 0.5s ease;
         }
 
@@ -486,6 +558,33 @@
             }
         }
 
+        /* Mobile specific adjustments for guidelines */
+        @media (max-width: 900px) {
+            .drag-instruction {
+                bottom: 100px;
+                white-space: nowrap;
+            }
+            .features-list {
+                font-size: 0.5rem;
+                top: 80px;
+                right: 20px;
+                gap: 10px;
+            }
+            #list-view-helper {
+                display: none !important;
+            }
+            .desktop-text {
+                display: none !important;
+            }
+            .mobile-text {
+                display: inline !important;
+            }
+        }
+
+        .mobile-text {
+            display: none;
+        }
+
         /* Specific View overlay for Double Click */
         .specific-view-overlay {
             position: fixed;
@@ -577,7 +676,7 @@
     <!-- 3D Space Background -->
     <canvas id="space-canvas"></canvas>
 
-    <a href="Dripp Main.html" class="nav-back">← Explore More</a>
+    <a href="index.html" class="nav-back"><span style="font-size: 1.5rem; line-height:1; margin-top:-3px;">←</span></a>
 
     <div class="sp-wrapper">
         <button class="sparkle-button" id="tripp-toggle-btn">
@@ -605,10 +704,9 @@
     </div>
 
     <div class="features-list">
-        <div class="feature-item" id="reset-helper"><span>Reset View</span><span class="feature-key">Space</span></div>
-        <div class="feature-item" id="list-view-helper"><span>List View</span><span class="feature-key">Enter</span>
+        <div class="feature-item" id="list-view-helper"><span>List View</span><span class="feature-key"><span class="desktop-text">Enter</span><span class="mobile-text">Tap</span></span>
         </div>
-        <div class="feature-item"><span>Specific View</span><span class="feature-key">Double Click</span></div>
+        <div class="feature-item"><span>Specific View</span><span class="feature-key"><span class="desktop-text">Double Click</span><span class="mobile-text">Double Tap</span></span></div>
     </div>
 
     <div class="cursor" id="cursor"></div>
@@ -700,14 +798,22 @@
             init() {
                 for (let i = 0; i < this.numberOfImages; i++) {
                     const el = document.createElement('div');
-                    el.className = 'canvas-item';
+                    el.className = 'canvas-item is-loading';
 
                     const img = document.createElement('img');
+                    
+                    // Add loaded class when image successfully loads
+                    img.onload = () => {
+                        el.classList.remove('is-loading');
+                        img.classList.add('loaded');
+                    };
+
                     // Map to sequentially numbered images as requested
                     img.src = `${this.imageRootPath}/img${i + 1}.jpg`;
 
                     // Smart Fallback placeholder while user organizes their local photos
                     img.onerror = () => {
+                        img.onerror = null; // Prevent infinite loop
                         img.src = `https://picsum.photos/seed/${i + 15}/400/400`; // Fast lightweight load
                     };
 
@@ -826,6 +932,27 @@
 
                 // Keyboard interactions (Space to Reset, Enter to Toggle List, M to toggle Space)
                 this.isListView = false;
+
+                // Tap on Reset UI
+                const resetHelper = document.getElementById('reset-helper');
+                if (resetHelper) {
+                    resetHelper.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (!this.isListView && !document.getElementById('specific-view').classList.contains('active')) {
+                            gsap.to(this.state, {
+                                targetX: 0,
+                                targetY: 0,
+                                x: 0,
+                                y: 0,
+                                velX: 0,
+                                velY: 0,
+                                duration: 1.5,
+                                ease: "power3.inOut"
+                            });
+                        }
+                    });
+                }
+
                 window.addEventListener('keydown', (e) => {
                     // M: Toggle Space Mode
                     if (e.code === 'KeyM') {
@@ -868,7 +995,8 @@
                             showcase.classList.add('list-view-mode');
                             showcase.style.overflowY = 'auto'; // Enable native v-scroll
                             if (dragMsg) dragMsg.classList.add('hidden'); // Hide Drag msg completely in list
-                            document.getElementById('reset-helper').classList.add('hidden'); // Hide Spc helper
+                            const resetHelperNode = document.getElementById('reset-helper');
+                            if (resetHelperNode) resetHelperNode.classList.add('hidden'); // Hide Spc helper
                             if (spWrapper) spWrapper.style.display = 'none';
                             if (listViewHelperText) listViewHelperText.innerText = 'Infinite View';
 
@@ -882,7 +1010,8 @@
                             showcase.classList.remove('list-view-mode');
                             showcase.style.overflowY = 'hidden';
                             if (dragMsg) dragMsg.classList.remove('hidden'); // Show Drag msg again
-                            document.getElementById('reset-helper').classList.remove('hidden');
+                            const resetHelperNode2 = document.getElementById('reset-helper');
+                            if (resetHelperNode2) resetHelperNode2.classList.remove('hidden');
                             if (spWrapper) spWrapper.style.display = 'block';
                             if (listViewHelperText) listViewHelperText.innerText = 'List View';
 
@@ -1111,45 +1240,51 @@
 
             const isGoingTripp = !spaceModeActive;
             const liquidColor = isGoingTripp ? 'var(--brand-yellow)' : 'var(--deep-black)';
+            const _isMobileEffect = window.innerWidth <= 900;
 
-            // Add SVG filter for gooey drips if not present
-            if (!document.getElementById('goo-filter-svg')) {
-                const svgNS = "http://www.w3.org/2000/svg";
-                const svg = document.createElementNS(svgNS, "svg");
-                svg.id = "goo-filter-svg";
-                svg.style.position = "absolute";
-                svg.style.width = "0";
-                svg.style.height = "0";
-                svg.style.visibility = "hidden";
-                svg.innerHTML = `
-                    <defs>
-                        <filter id="goo">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
-                            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -15" result="goo" />
-                            <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-                        </filter>
-                    </defs>
-                `;
-                document.body.appendChild(svg);
-            }
-
-            // Create container with gooey filter
+            // Create container for spill animation
             const spillContainer = document.createElement('div');
             spillContainer.style.position = 'fixed';
-            spillContainer.style.inset = '-300px'; // Generous overflow for splatters
             spillContainer.style.zIndex = '50';
             spillContainer.style.pointerEvents = 'none';
-            spillContainer.style.filter = 'url(#goo)';
-            spillContainer.style.WebkitFilter = 'url(#goo)';
+
+            if (!_isMobileEffect) {
+                // Add SVG filter for gooey drips if not present (Desktop only - heavy on mobile)
+                if (!document.getElementById('goo-filter-svg')) {
+                    const svgNS = "http://www.w3.org/2000/svg";
+                    const svg = document.createElementNS(svgNS, "svg");
+                    svg.id = "goo-filter-svg";
+                    svg.style.position = "absolute";
+                    svg.style.width = "0";
+                    svg.style.height = "0";
+                    svg.style.visibility = "hidden";
+                    svg.innerHTML = `
+                        <defs>
+                            <filter id="goo">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur" />
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -15" result="goo" />
+                                <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+                            </filter>
+                        </defs>
+                    `;
+                    document.body.appendChild(svg);
+                }
+                spillContainer.style.inset = '-300px'; // Generous overflow for splatters
+                spillContainer.style.filter = 'url(#goo)';
+                spillContainer.style.WebkitFilter = 'url(#goo)';
+            } else {
+                spillContainer.style.inset = '-150px'; // Increased inset for mobile to fix bottom gap
+            }
             document.body.appendChild(spillContainer);
 
             // Helper to create liquid blobs
             const createBlob = () => {
                 const drop = document.createElement('div');
                 drop.style.position = 'absolute';
-                // Offset origin by the -300px inset of the container
-                drop.style.left = (originX + 300) + 'px';
-                drop.style.top = (originY + 300) + 'px';
+                // Offset origin by the inset of the container
+                const insetOffset = _isMobileEffect ? 150 : 300;
+                drop.style.left = (originX + insetOffset) + 'px';
+                drop.style.top = (originY + insetOffset) + 'px';
                 drop.style.width = '0px';
                 drop.style.height = '0px';
                 drop.style.borderRadius = '50%';
@@ -1162,15 +1297,15 @@
             };
 
             const mainBlob = createBlob();
-            // Count of splash droplets (12 for high performance and visual impact)
-            const droplets = Array.from({ length: 12 }).map(() => createBlob());
+            // Splash droplets (12 for desktop, 0 on mobile to prevent lag)
+            const droplets = _isMobileEffect ? [] : Array.from({ length: 12 }).map(() => createBlob());
 
             const maxDist = Math.hypot(
                 Math.max(originX, window.innerWidth - originX),
                 Math.max(originY, window.innerHeight - originY)
             );
             // Overshoot target size to cover screen completely despite goo erosion
-            const targetSize = maxDist * 2.8;
+            const targetSize = maxDist * (_isMobileEffect ? 4.5 : 2.8);
 
             btn.style.pointerEvents = 'none';
 

@@ -1,18 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
+'use client';
+import { useEffect } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dripp Media | Video Portfolio</title>
-    <!-- Fonts -->
-    <link
-        href="https://api.fontshare.com/v2/css?f[]=panchang@200,300,400,500,600,700,800&f[]=clash-display@200,300,400,500,600,700&display=swap"
-        rel="stylesheet">
-    <!-- GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+export default function Page() {
+  useEffect(() => {
+    // Register GSAP
 
-    <style>
+    // Ensure body is visible
+    gsap.set('body', { opacity: 1, y: 0 });
+
+    if (!window.__inlineClickBound) {
+        window.__inlineClickBound = true;
+        window.addEventListener('inline-click', (e) => {
+            const { action, target, originalEvent } = e.detail;
+            const event = originalEvent;
+            try {
+                eval(action.replace(/this/g, 'target'));
+            } catch(err) { 
+                console.error('Inline click error:', err); 
+            }
+        });
+    }
+    
+    gsap.registerPlugin(ScrollTrigger);
+
+    
+        // Custom Cursor Logic
+        const cursor = document.getElementById('cursor');
+        window.addEventListener('mousemove', (e) => {
+            gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1, ease: "power2.out" });
+        });
+        window.addEventListener('mousedown', () => cursor.classList.add('active'));
+        window.addEventListener('mouseup', () => cursor.classList.remove('active'));
+
+        // 3D Card Hover Interaction
+        const cards = document.querySelectorAll('.card-wrapper');
+
+        cards.forEach(card => {
+            const inner = card.querySelector('.card-inner');
+
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Set CSS variables for spotlight effects
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+
+                // Calculate 3D rotation
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = ((y - centerY) / centerY) * -10;
+                const rotateY = ((x - centerX) / centerX) * 10;
+
+                gsap.to(inner, {
+                    rotationX: rotateX,
+                    rotationY: rotateY,
+                    duration: 0.4,
+                    ease: "power2.out",
+                    transformPerspective: 1000
+                });
+
+                // Active state for cursor
+                cursor.classList.add('active');
+            });
+
+            card.addEventListener('mouseleave', () => {
+                gsap.to(inner, {
+                    rotationX: 0,
+                    rotationY: 0,
+                    duration: 0.8,
+                    ease: "power2.out"
+                });
+                cursor.classList.remove('active');
+            });
+
+            // Smooth Exit Transition on Click
+            card.addEventListener('click', () => {
+                const targetUrl = card.getAttribute('data-link');
+                if (targetUrl) {
+                    // Zoom into the clicked card and fade everything out
+                    gsap.to(card, {
+                        scale: 1.5,
+                        opacity: 0,
+                        duration: 0.6,
+                        ease: "power2.inOut",
+                        zIndex: 100
+                    });
+
+                    // Fade out the rest of the body
+                    gsap.to('body', {
+                        opacity: 0,
+                        duration: 0.6,
+                        delay: 0.1,
+                        ease: "power2.inOut",
+                        onComplete: () => {
+                            window.location.href = targetUrl;
+                        }
+                    });
+                }
+            });
+        });
+
+        // Ambient Space Background Particle Logic
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.z = Math.random() * 2 + 0.1;
+                this.vx = (Math.random() - 0.5) * 0.2;
+                this.vy = Math.random() * -0.5 - 0.1;
+                this.alpha = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.y < 0) {
+                    this.y = height;
+                    this.x = Math.random() * width;
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.z, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 150; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    
+
+    return () => {
+      ScrollTrigger.getAll().forEach(t => t.kill());
+    };
+  }, []);
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
         :root {
             --brand-yellow: #ebd73f;
             --deep-black: #050505;
@@ -44,23 +200,30 @@
 
         /* Nav back button */
         .nav-back {
-            position: fixed;
-            top: 40px;
-            left: 50px;
-            z-index: 100;
-            color: var(--pure-white);
-            text-decoration: none;
-            font-family: 'Panchang', sans-serif;
-            font-size: 0.8rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            mix-blend-mode: difference;
-            transition: color 0.3s ease;
-        }
+    position: fixed;
+    top: 30px;
+    left: 30px;
+    z-index: 9999;
+    color: var(--deep-black, #050505) !important;
+    background-color: var(--brand-yellow, #ebd73f);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(235, 215, 63, 0.4);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
 
-        .nav-back:hover {
-            color: var(--brand-yellow);
-        }
+.nav-back:hover {
+    transform: scale(1.1);
+    background-color: #fff;
+    color: #000 !important;
+}
 
         /* Custom Cursor */
         .cursor {
@@ -98,6 +261,10 @@
         }
 
         .portfolio-title-container {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
             margin-bottom: 60px;
             text-align: center;
             z-index: 10;
@@ -140,7 +307,9 @@
         }
 
         .card-wrapper {
-            position: relative;
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
             transform-style: preserve-3d;
             --mouse-x: 50%;
             --mouse-y: 50%;
@@ -406,227 +575,88 @@
                 flex-direction: column;
                 gap: 40px;
             }
+
+            .desktop-text { display: none !important; }
+            .mobile-text { display: inline !important; }
         }
-    </style>
-</head>
 
-<body>
+        .mobile-text { display: none; }
+    ` }} />
 
-    <!-- 3D Space Background -->
-    <canvas id="space-canvas"></canvas>
-
-    <a href="../index.html" class="nav-back">← Explore More</a>
-
-    <div class="cursor" id="cursor"></div>
-
-    <section class="portfolio">
-        <div class="portfolio-title-container">
-            <h2 class="cards-title">Video <span>Dimensions</span></h2>
-            <p class="cards-subtitle">Choose your format. Experience the cut.</p>
-        </div>
-
-        <div class="cards-container">
-
-            <!-- HORIZONTAL LONG FORM CARD -->
-            <div class="card-wrapper card-horizontal" data-link="Long form Portfolio.html">
-                <div class="card-inner">
-                    <div class="face">
-                        <div class="face-bg">
-                            <div class="card-grid"></div>
-                            <div class="abstract-shape"></div>
-                        </div>
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="glass-label">
-                                    <span class="status-dot"></span> 16:9 FORMAT
-                                </span>
-                                <div class="format-icon">
-                                    <!-- simple horizontal rectangle icon -->
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <h2>Long Form<br><span>Cinematics</span></h2>
-                                <p class="front-desc">Immersive storytelling, mini-documentaries, YouTube videos, and
-                                    high-production commercials that breathe life into your brand narrative.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      <div>
+  {/* 3D Space Background */}
+  <canvas id="space-canvas" />
+  <a href="/" className="nav-back"><i className="uil uil-arrow-left" /></a>
+  <div className="cursor" id="cursor" />
+  <section className="portfolio">
+    <div className="portfolio-title-container">
+      <h2 className="cards-title">Video <span>Dimensions</span></h2>
+      <p className="cards-subtitle">Choose your format. Experience the cut.</p>
+    </div>
+    <div className="cards-container">
+      {/* HORIZONTAL LONG FORM CARD */}
+      <div className="card-wrapper card-horizontal" data-link="/video-portfolio/long-form">
+        <div className="card-inner">
+          <div className="face">
+            <div className="face-bg">
+              <div className="card-grid" />
+              <div className="abstract-shape" />
             </div>
-
-            <!-- VERTICAL SHORT FORM CARD -->
-            <div class="card-wrapper card-vertical" data-link="Short form Portfolio.html">
-                <div class="card-inner">
-                    <div class="face">
-                        <div class="face-bg">
-                            <div class="card-grid"></div>
-                            <div class="abstract-shape"></div>
-                        </div>
-                        <div class="card-content">
-                            <div class="card-header">
-                                <span class="glass-label">
-                                    <span class="status-dot"></span> 9:16 FORMAT
-                                </span>
-                                <div class="format-icon">
-                                    <!-- simple vertical rectangle icon -->
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="6" y="2" width="12" height="20" rx="2" ry="2"></rect>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <h2>Short Form<br><span>Viral Edits</span></h2>
-                                <p class="front-desc">High-retention, hyper-engaging content engineered perfectly for
-                                    Reels, TikToks, and Shorts.</p>
-                            </div>
-                        </div>
-                    </div>
+            <div className="card-content">
+              <div className="card-header">
+                <span className="glass-label">
+                  <span className="status-dot" /> 16:9 FORMAT
+                </span>
+                <div className="format-icon">
+                  {/* simple horizontal rectangle icon */}
+                  <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x={2} y={6} width={20} height={12} rx={2} ry={2} />
+                  </svg>
                 </div>
+              </div>
+              <div className="card-body">
+                <h2>Long Form<br /><span>Cinematics</span></h2>
+                <p className="front-desc">Immersive storytelling, mini-documentaries, YouTube videos, and
+                  high-production commercials that breathe life into your brand narrative.</p>
+              </div>
             </div>
-
+          </div>
         </div>
-    </section>
+      </div>
+      {/* VERTICAL SHORT FORM CARD */}
+      <div className="card-wrapper card-vertical" data-link="/video-portfolio/short-form">
+        <div className="card-inner">
+          <div className="face">
+            <div className="face-bg">
+              <div className="card-grid" />
+              <div className="abstract-shape" />
+            </div>
+            <div className="card-content">
+              <div className="card-header">
+                <span className="glass-label">
+                  <span className="status-dot" /> 9:16 FORMAT
+                </span>
+                <div className="format-icon">
+                  {/* simple vertical rectangle icon */}
+                  <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x={6} y={2} width={12} height={20} rx={2} ry={2} />
+                  </svg>
+                </div>
+              </div>
+              <div className="card-body">
+                <h2>Short Form<br /><span>Viral Edits</span></h2>
+                <p className="front-desc">High-retention, hyper-engaging content engineered perfectly for
+                  Reels, TikToks, and Shorts.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
 
-    <script>
-        // Custom Cursor Logic
-        const cursor = document.getElementById('cursor');
-        window.addEventListener('mousemove', (e) => {
-            gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1, ease: "power2.out" });
-        });
-        window.addEventListener('mousedown', () => cursor.classList.add('active'));
-        window.addEventListener('mouseup', () => cursor.classList.remove('active'));
 
-        // 3D Card Hover Interaction
-        const cards = document.querySelectorAll('.card-wrapper');
-
-        cards.forEach(card => {
-            const inner = card.querySelector('.card-inner');
-
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                // Set CSS variables for spotlight effects
-                card.style.setProperty('--mouse-x', `${x}px`);
-                card.style.setProperty('--mouse-y', `${y}px`);
-
-                // Calculate 3D rotation
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-
-                const rotateX = ((y - centerY) / centerY) * -10;
-                const rotateY = ((x - centerX) / centerX) * 10;
-
-                gsap.to(inner, {
-                    rotationX: rotateX,
-                    rotationY: rotateY,
-                    duration: 0.4,
-                    ease: "power2.out",
-                    transformPerspective: 1000
-                });
-
-                // Active state for cursor
-                cursor.classList.add('active');
-            });
-
-            card.addEventListener('mouseleave', () => {
-                gsap.to(inner, {
-                    rotationX: 0,
-                    rotationY: 0,
-                    duration: 0.8,
-                    ease: "power2.out"
-                });
-                cursor.classList.remove('active');
-            });
-
-            // Smooth Exit Transition on Click
-            card.addEventListener('click', () => {
-                const targetUrl = card.getAttribute('data-link');
-                if (targetUrl) {
-                    // Zoom into the clicked card and fade everything out
-                    gsap.to(card, {
-                        scale: 1.5,
-                        opacity: 0,
-                        duration: 0.6,
-                        ease: "power2.inOut",
-                        zIndex: 100
-                    });
-
-                    // Fade out the rest of the body
-                    gsap.to('body', {
-                        opacity: 0,
-                        duration: 0.6,
-                        delay: 0.1,
-                        ease: "power2.inOut",
-                        onComplete: () => {
-                            window.location.href = targetUrl;
-                        }
-                    });
-                }
-            });
-        });
-
-        // Ambient Space Background Particle Logic
-        const canvas = document.getElementById('space-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-
-        window.addEventListener('resize', resize);
-        resize();
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.z = Math.random() * 2 + 0.1;
-                this.vx = (Math.random() - 0.5) * 0.2;
-                this.vy = Math.random() * -0.5 - 0.1;
-                this.alpha = Math.random() * 0.5 + 0.1;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (this.y < 0) {
-                    this.y = height;
-                    this.x = Math.random() * width;
-                }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.z, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-                ctx.fill();
-            }
-        }
-
-        for (let i = 0; i < 150; i++) {
-            particles.push(new Particle());
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-    </script>
-</body>
-
-</html>
+    </>
+  );
+}
