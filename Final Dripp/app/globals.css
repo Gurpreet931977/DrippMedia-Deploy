@@ -225,6 +225,50 @@
         }
 
         /* --- HERO --- */
+        
+        .bottom-controls {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .bottom-controls {
+                bottom: 15px;
+                left: 50%;
+                transform: translateX(-50%);
+                gap: 10px;
+                width: max-content;
+                max-width: 90vw;
+            }
+            .game-free-btn {
+                padding: 0 10px !important;
+                font-size: 0.65rem !important;
+            }
+            .cursor {
+                display: none !important;
+            }
+            .hero-title-container {
+                flex-direction: column !important;
+                gap: 5px !important;
+            }
+            .social-link {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 20px;
+                padding: 12px 24px !important;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+        
         section.hero {
             height: 100vh;
             height: 100dvh;
@@ -4084,4 +4128,25 @@
             .marquee-content {
                 animation: none !important;
             }
+        }
+
+        /* ============================================
+           UI Overlay Animations
+        ============================================ */
+        @keyframes popupEnter {
+            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .ui-popup-enter {
+            animation: popupEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes overlayFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .ui-overlay-fade {
+            animation: overlayFadeIn 0.4s ease forwards;
         }
