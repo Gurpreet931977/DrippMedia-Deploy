@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { createScoreGuard } from "./lib/scoreGuard";
+
+const CustomCursor = memo(() => {
+  return <div className="cursor"></div>;
+});
 
 export default function ComingSoon() {
   const containerRef = useRef(null);
@@ -40,6 +45,10 @@ export default function ComingSoon() {
   const cursorActiveRef = useRef(false);
   const lastMilestoneRef = useRef(0);
 
+  // Anti-cheat score guard — lives in a closure, never exposed to React state
+  const scoreGuardRef = useRef(createScoreGuard());
+  const [cheatedSession, setCheatedSession] = useState(false);
+
   // Sync state to ref for the animation loop
   useEffect(() => {
     activeGameRef.current = activeGame;
@@ -55,6 +64,8 @@ export default function ComingSoon() {
     } else if (activeGame === 'dripp') {
       scoreRef.current = 0;
       setScore(0);
+      scoreGuardRef.current.reset();
+      setCheatedSession(false);
       setGameState('playing');
       setIsPaused(false);
     }
@@ -73,29 +84,34 @@ export default function ComingSoon() {
     setIsTouch(typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
     document.body.classList.add('loaded');
     
-    // Custom cursor functionality
-    const cursor = document.querySelector('.cursor');
-    
+    let lastTouchTime = 0;
+
     const moveCursor = (e) => {
       // Allow cursor to update coordinates always, so UI is clickable while paused
-      // Desktop
-      if (e.clientX) {
-        mouseRef.current = { x: e.clientX, y: e.clientY };
-      }
-      // Mobile Touch
-      if (e.touches && e.touches.length > 0) {
-        if (activeGameRef.current !== 'none' && gameStateRef.current === 'playing' && !isPausedRef.current) {
-          const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
-          if (tag === 'canvas' || tag === 'body' || (e.target.classList && e.target.classList.contains('hero'))) {
-             e.preventDefault(); // Stop mobile scrolling/refreshing while playing on canvas
+      if (e.type.startsWith('touch')) {
+        lastTouchTime = Date.now();
+        if (e.touches && e.touches.length > 0) {
+          if (activeGameRef.current !== 'none' && gameStateRef.current === 'playing' && !isPausedRef.current) {
+            const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+            if (tag === 'canvas' || tag === 'body' || (e.target.classList && e.target.classList.contains('hero'))) {
+               e.preventDefault(); // Stop mobile scrolling/refreshing while playing on canvas
+            }
           }
+          mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          const cursorElem = document.querySelector('.cursor');
+          if (cursorElem) cursorElem.style.display = 'none'; // Hide cursor on touch
         }
-        mouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        if (cursor) cursor.style.display = 'none'; // Hide cursor on touch
+      } else {
+        // Ignore synthetic mouse events fired right after touch end
+        if (Date.now() - lastTouchTime < 500) return;
+        if (e.clientX !== undefined) {
+          mouseRef.current = { x: e.clientX, y: e.clientY };
+        }
       }
       
-      if (cursor && cursor.style.display !== 'none') {
-        gsap.to(cursor, {
+      const cursorElem = document.querySelector('.cursor');
+      if (cursorElem && cursorElem.style.display !== 'none') {
+        gsap.to(cursorElem, {
           x: mouseRef.current.x,
           y: mouseRef.current.y,
           xPercent: -50,
@@ -105,13 +121,19 @@ export default function ComingSoon() {
         });
       }
     };
+
+    const handleTouchEnd = (e) => {
+       lastTouchTime = Date.now();
+       if (e.touches.length === 0) {
+         mouseRef.current = { x: -100, y: -100 };
+       }
+    };
     
     window.addEventListener("mousemove", moveCursor);
     window.addEventListener("touchmove", moveCursor, { passive: false });
     window.addEventListener("touchstart", moveCursor, { passive: false });
-    window.addEventListener("touchend", () => {
-       mouseRef.current = { x: -100, y: -100 };
-    });
+    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchcancel", handleTouchEnd);
 
     // --- GAME LOGIC ---
     const canvas = canvasRef.current;
@@ -153,8 +175,8 @@ export default function ComingSoon() {
         // Logarithmic difficulty scaling prevents sudden spikes when catching 69-point White drops
         let speedMult;
         if (!isMobileCanvas) {
-           // PC version: faster leveling, more difficult from start
-           speedMult = 1.5 + Math.log10(1 + scoreRef.current / 150) * 0.6; 
+           // PC version: slower speed to make game more manageable
+           speedMult = 1.1 + Math.log10(1 + scoreRef.current / 200) * 0.45; 
         } else {
            speedMult = 1 + Math.log10(1 + scoreRef.current / 300) * 0.4; 
         }
@@ -203,7 +225,10 @@ export default function ComingSoon() {
           const cursor = document.querySelector('.cursor');
           if (cursor) {
              cursor.classList.add('eating');
-             setTimeout(() => cursor.classList.remove('eating'), 150);
+             if (window.cursorEatingTimeout) clearTimeout(window.cursorEatingTimeout);
+             window.cursorEatingTimeout = setTimeout(() => {
+                if (cursor) cursor.classList.remove('eating');
+             }, 150);
           }
           
           if (this.isBomb) {
@@ -229,28 +254,47 @@ export default function ComingSoon() {
              }
              return;
           } else if (this.isWhite) {
-             scoreRef.current += 69;
-             for(let i=0; i<40; i++) fireworks.push(new FireworkParticle(this.x, this.y, '#ffffff'));
-          } else if (this.isRed) {
-             scoreRef.current += 5; 
-          } else {
-             scoreRef.current += 1;
-          }
-          
-          let prevScore = scoreRef.current - (this.isWhite ? 69 : (this.isRed ? 5 : 1));
-          setScore(scoreRef.current);
-          
-          if (Math.floor(scoreRef.current / 100) > Math.floor(prevScore / 100)) {
+              const result = scoreGuardRef.current.tryAddScore(69);
+              if (result.ok) {
+                scoreRef.current = result.score;
+                setScore(result.score);
+              } else if (result.cheated) {
+                setCheatedSession(true);
+              }
+              for(let i=0; i<40; i++) fireworks.push(new FireworkParticle(this.x, this.y, '#ffffff'));
+           } else if (this.isRed) {
+              const result = scoreGuardRef.current.tryAddScore(5);
+              if (result.ok) {
+                scoreRef.current = result.score;
+                setScore(result.score);
+              } else if (result.cheated) {
+                setCheatedSession(true);
+              }
+           } else {
+              const result = scoreGuardRef.current.tryAddScore(1);
+              if (result.ok) {
+                scoreRef.current = result.score;
+                setScore(result.score);
+              } else if (result.cheated) {
+                setCheatedSession(true);
+              }
+           }
+           
+           const curScore = scoreRef.current;
+           const addedDelta = this.isWhite ? 69 : (this.isRed ? 5 : 1);
+           const preMilestoneScore = curScore - addedDelta;
+           
+           if (Math.floor(curScore / 100) > Math.floor(preMilestoneScore / 100)) {
              const scoreCounter = document.querySelector('.score-counter-element');
              if (scoreCounter) {
                 gsap.fromTo(scoreCounter, { scale: 1.5, color: '#ffffff', textShadow: '0 0 30px #ffffff' }, { scale: 1, color: 'var(--brand-yellow)', textShadow: '0 0 20px rgba(235, 215, 63, 0.4)', duration: 0.8, ease: 'elastic.out(1, 0.4)' });
              }
-          }
-          
-          if (scoreRef.current > 50 && scoreRef.current % 50 === 0 && scoreRef.current !== lastMilestoneRef.current) {
-            lastMilestoneRef.current = scoreRef.current;
+           }
+           
+           if (curScore > 50 && curScore % 50 === 0 && curScore !== lastMilestoneRef.current) {
+            lastMilestoneRef.current = curScore;
             triggerMilestoneAnimation(this.x, this.y);
-          }
+           }
 
           splashes.push(new Splash(this.x, this.y, this.isRed, this.isWhite));
           for (let i = 0; i < 6; i++) {
@@ -1267,7 +1311,7 @@ export default function ComingSoon() {
            box-shadow: 0 0 15px rgba(235, 215, 63, 0.3) !important;
         }
       `}</style>
-      {!isTouch && <div className="cursor"></div>}
+      {!isTouch && <CustomCursor />}
 
       {/* Control Buttons (Top Left) */}
       <div style={{ position: 'absolute', top: '5%', left: '5%', zIndex: 4, display: 'flex', gap: '15px' }}>
@@ -1476,11 +1520,33 @@ export default function ComingSoon() {
                {activeGame === 'dripp' ? 'You caught a bomb! Game Over.' : 'You dropped the ball! Game Over.'}
              </p>
              
-             <div style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+             <div style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
                <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '2px' }}>Final Score</span>
-               <span style={{ fontSize: '3.5rem', fontWeight: 600, color: 'var(--brand-yellow)', textShadow: '0 0 20px rgba(235, 215, 63, 0.4)', lineHeight: 1, marginTop: '5px' }}>
+               <span style={{ fontSize: '3.5rem', fontWeight: 600, color: 'var(--brand-yellow)', textShadow: '0 0 20px rgba(235, 215, 63, 0.4)', lineHeight: 1, marginTop: '5px', filter: cheatedSession && activeGame === 'dripp' ? 'blur(6px)' : 'none', userSelect: 'none' }}>
                   {activeGame === 'dripp' ? score : breakerScore}
                </span>
+               {cheatedSession && activeGame === 'dripp' && (
+                 <div style={{
+                   position: 'absolute', top: '50%', left: '50%',
+                   transform: 'translate(-50%, -50%) rotate(-8deg)',
+                   background: 'rgba(235, 63, 63, 0.15)',
+                   border: '2px solid rgba(235, 63, 63, 0.8)',
+                   borderRadius: '6px',
+                   padding: '4px 12px',
+                   color: '#eb3f3f',
+                   fontFamily: "'Panchang', sans-serif",
+                   fontSize: '1rem',
+                   fontWeight: 700,
+                   letterSpacing: '3px',
+                   textTransform: 'uppercase',
+                   pointerEvents: 'none',
+                   whiteSpace: 'nowrap',
+                   textShadow: '0 0 10px rgba(235,63,63,0.6)',
+                   boxShadow: '0 0 15px rgba(235,63,63,0.3)'
+                 }}>
+                   ⚠ Tampered
+                 </div>
+               )}
              </div>
 
              <div style={{ marginTop: '40px', display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1574,6 +1640,8 @@ export default function ComingSoon() {
                     gsap.to('.ui-overlay', { opacity: 0, scale: 0.95, duration: 0.3, ease: 'power2.inOut', onComplete: () => {
                         scoreRef.current = 0;
                         setScore(0);
+                        scoreGuardRef.current.reset();
+                        setCheatedSession(false);
                         setGameState('playing');
                         setIsPaused(false);
                         setShowShareOptions(false);
@@ -1584,9 +1652,23 @@ export default function ComingSoon() {
                )}
                
                {!showShareOptions ? (
-                 <PrimaryButton onClick={prepareShare}>
-                   Share Score
-                 </PrimaryButton>
+                 cheatedSession && activeGame === 'dripp' ? (
+                   <div style={{
+                     padding: '10px 20px', borderRadius: '30px',
+                     border: '1px solid rgba(235,63,63,0.5)',
+                     background: 'rgba(235,63,63,0.08)',
+                     color: 'rgba(235,63,63,0.8)',
+                     fontFamily: "'Clash Display', sans-serif",
+                     fontSize: '0.75rem', letterSpacing: '1.5px',
+                     textTransform: 'uppercase', cursor: 'not-allowed'
+                   }}>
+                     ✕ Score Invalid
+                   </div>
+                 ) : (
+                   <PrimaryButton onClick={prepareShare}>
+                     Share Score
+                   </PrimaryButton>
+                 )
                ) : (
                  <div className="share-container" style={{ display: 'flex', gap: '10px' }}>
                    <PrimaryButton onClick={() => handleShare('download')} disabled={isCapturing}>
@@ -1599,9 +1681,8 @@ export default function ComingSoon() {
                )}
              </div>
            </div>
-        </div>
+         </div>
       )}
-
       {/* Level Complete Overlay */}
       {gameState === 'level-complete' && !isHelpOpen && (
         <div className="ui-overlay ui-overlay-fade" style={{
