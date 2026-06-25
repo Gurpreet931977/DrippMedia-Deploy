@@ -12,6 +12,7 @@ import LiquidSandbox from "./games/LiquidSandbox";
 import BulletHell from "./games/BulletHell";
 import NodeWeaver from "./games/NodeWeaver";
 import HarmonicLooper from "./games/HarmonicLooper";
+import PocketTanks from "./games/PocketTanks";
 
 // ─── MODULE-LEVEL HELPERS (immune to minification TDZ) ────────────────────────
 // These live at module scope so the minifier handles them safely.
@@ -570,6 +571,7 @@ function createGameEngine(canvas, callbacks) {
       else if (ag === 'slingshot') activeModule = new SlingshotNinja(canvas, callbacks);
       else if (ag === 'sandbox') activeModule = new LiquidSandbox(canvas, callbacks);
       else if (ag === 'bullethell') activeModule = new BulletHell(canvas, callbacks);
+      else if (ag === 'tanks') activeModule = new PocketTanks(canvas, callbacks);
       else if (ag === 'nodeweaver') activeModule = new NodeWeaver(canvas, callbacks);
       else if (ag === 'looper') activeModule = new HarmonicLooper(canvas, callbacks);
       
@@ -1187,6 +1189,13 @@ const getHelpText = (game) => {
         scoreSystem="None. Pure Boss Rush survival. Defeat bosses to advance to harder levels with epic names." 
         powerups="Blue 'S': Shield that deflects bullets back at the boss. Orange 'F': Frenzy mode for 3x damage at blazing speeds. Red 'N': Screen-clearing Nuke."
       />;
+    case 'tanks':
+      return <HelpBrief 
+        controls="Drag your mouse or touch backwards from your tank to aim and set power. Release to fire!" 
+        howToPlay="Turn-based artillery combat against an AI! Destroy the AI tank before it destroys you. The terrain is fully destructible." 
+        scoreSystem="No points. Pure 1v1 survival." 
+        powerups="No powerups. Master the gravity and wind to land perfect shots."
+      />;
     case 'mandala':
       return <HelpBrief 
         controls="Click and drag to draw." 
@@ -1387,7 +1396,7 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
     >{children}</button>
   );
 
-  const gameName = activeGame === "breaker" ? "NEON BREAKER" : activeGame === "scope" ? "SCOPE CREEP" : activeGame === "pendulum" ? "NEON PENDULUM" : activeGame === "gravity" ? "GRAVITY FLIP" : activeGame === "slingshot" ? "SLINGSHOT NINJA" : activeGame === "bullethell" ? "BULLET HELL" : activeGame === "sandbox" ? "LIQUID LIGHT" : activeGame === "mandala" ? "MANDALA MAKER" : activeGame === "nodeweaver" ? "ZEN NODE WEAVER" : activeGame === "looper" ? "HARMONIC LOOPER" : "DRIPP DROP";
+  const gameName = activeGame === "breaker" ? "NEON BREAKER" : activeGame === "scope" ? "SCOPE CREEP" : activeGame === "pendulum" ? "NEON PENDULUM" : activeGame === "gravity" ? "GRAVITY FLIP" : activeGame === "slingshot" ? "SLINGSHOT NINJA" : activeGame === "bullethell" ? "BULLET HELL" : activeGame === "tanks" ? "NEON TANKS" : activeGame === "sandbox" ? "LIQUID LIGHT" : activeGame === "mandala" ? "MANDALA MAKER" : activeGame === "nodeweaver" ? "ZEN NODE WEAVER" : activeGame === "looper" ? "HARMONIC LOOPER" : "DRIPP DROP";
   const isCreativeGame = ['sandbox', 'mandala', 'nodeweaver', 'looper'].includes(activeGame);
 
   return (
@@ -1405,7 +1414,7 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
       </div>
 
       {/* Top Right: Exact Score HUD */}
-      {activeGame !== "none" && activeGame !== "cyber_racer" && activeGame !== "neon_blocks" && activeGame !== "bullethell" && !isCreativeGame && (
+      {activeGame !== "none" && activeGame !== "cyber_racer" && activeGame !== "neon_blocks" && activeGame !== "bullethell" && activeGame !== "tanks" && !isCreativeGame && (
         <div style={{ position: "absolute", top: "30px", right: "30px", textAlign: "right", pointerEvents: "none", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
           <div style={{ fontSize: "0.8rem", color: "#888", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "5px" }}>
              {activeGame === "simon" ? "ROUND" : (activeGame === "snake" || activeGame === "slingshot") ? "SCORE" : activeGame === "gravity" ? "DISTANCE" : "SCORE"}
