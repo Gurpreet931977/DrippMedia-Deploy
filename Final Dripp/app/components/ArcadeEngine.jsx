@@ -14,6 +14,10 @@ import NodeWeaver from "./games/NodeWeaver";
 import HarmonicLooper from "./games/HarmonicLooper";
 import BeatMaker from "./games/BeatMaker";
 import PocketTanks from "./games/PocketTanks";
+import NeonPac from "./games/NeonPac";
+import BomberCrazy from "./games/BomberCrazy";
+import NeonDevil from "./games/NeonDevil";
+import RetroAudio from "./games/RetroAudio";
 
 // ─── MODULE-LEVEL HELPERS (immune to minification TDZ) ────────────────────────
 // These live at module scope so the minifier handles them safely.
@@ -603,6 +607,9 @@ function createGameEngine(canvas, callbacks) {
       else if (ag === 'nodeweaver') activeModule = new NodeWeaver(logicalCanvas, callbacks);
       else if (ag === 'looper') activeModule = new HarmonicLooper(logicalCanvas, callbacks);
       else if (ag === 'beats') activeModule = new BeatMaker(logicalCanvas, callbacks);
+      else if (ag === 'neonpac') activeModule = new NeonPac(logicalCanvas, callbacks);
+      else if (ag === 'bombercrazy') activeModule = new BomberCrazy(logicalCanvas, callbacks);
+      else if (ag === 'neondevil') activeModule = new NeonDevil(logicalCanvas, callbacks);
       
       lastActive = ag;
       justSwitched = true;
@@ -1022,6 +1029,10 @@ function createGameEngine(canvas, callbacks) {
   }
 
   function handleKeyUp(e) {
+    if (activeModule && activeModule.handleKeyUp) {
+      activeModule.handleKeyUp(e);
+      return;
+    }
     const ag = getActiveGameRef();
     if (ag === "invaders") {
       invKeys[e.key] = false;
@@ -1239,6 +1250,26 @@ const getHelpText = (game) => {
         scoreSystem="Each match is a 1v1 fight to the death. No points, just glory." 
         powerups="You spawn with a random arsenal of crazy weapons (Sniper, Boomerang, Black Hole, Volcanic, and more!). Choose wisely."
       />;
+    case 'neonpac':
+      return <HelpBrief 
+        controls="Move your mouse or drag your finger anywhere. The cyber-entity will follow your cursor smoothly." 
+        howToPlay="Navigate the neon grid to collect all the data dots. Avoid the swarming virus ghosts. The game infinitely scales in difficulty with new waves of dots and smarter ghosts." 
+        scoreSystem="Small dots grant points. Eating large power nodes grants massive points and allows you to eat ghosts for huge bonuses." 
+        powerups="Glowing White Nodes (Power Pellet): Grants temporary invincibility and speed, allowing you to consume ghosts for 200 points each."
+      />;
+    case 'bombercrazy':
+      return <HelpBrief 
+        controls="Use Arrow Keys or W,A,S,D to move and Spacebar to drop bombs. On mobile, tap the screen edges to move and center to drop bombs." 
+        howToPlay="Trap the chasing enemy programs by strategically placing bombs in their path. Bombs explode in a cross pattern after a short fuse." 
+        scoreSystem="Destroying enemies grants points. Higher levels increase enemy speed and spawn rates." 
+        powerups="Bombs can trigger chain reactions if their blast radii overlap. Use this to clear massive areas of the board at once!"
+      />;
+    case 'neondevil':
+      return <HelpBrief 
+        controls="Use W,A,S,D or Arrow Keys to move and jump. On mobile, use the on-screen glowing touch zones." 
+        howToPlay="A brutal 'endless' troll platformer. Reach the green glowing portal to win. Nothing is as it seems. Floors will drop, ceilings will crush you, and spikes will move. Good luck finding the 'final' level." 
+        powerups="None. Trust nothing. Memorize the traps to survive."
+      />;
     case 'mandala':
       return <HelpBrief 
         controls="Click and drag to draw." 
@@ -1284,7 +1315,10 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
   const [gameState, setGameState] = useState("playing");
   const gameStateRef = useRef("playing");
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const isPausedRef = useRef(false);
+  const [bgmVolume, setBgmVolume] = useState(1.0);
+  const [sfxVolume, setSfxVolume] = useState(1.0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
@@ -1299,6 +1333,46 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
   const cursorActiveRef = useRef(false);
   const lastMilestoneRef = useRef(0);
   const isMountedRef = useRef(false); // Skip first-render effect execution
+  const audioRef = useRef(null);
+
+  const handleBrag = async () => {
+    let bragScore = score;
+    if (activeGame === "breaker") bragScore = breakerScore;
+    if (activeGame === "scope") bragScore = scopeScore;
+    
+    const gameNamesMap = {
+      breaker: "NEON BREAKER", scope: "SCOPE CREEP", pendulum: "NEON PENDULUM", gravity: "GRAVITY FLIP", slingshot: "SLINGSHOT NINJA", bullethell: "BULLET HELL", tanks: "POCKET TANKS", sandbox: "LIQUID LIGHT", liquid: "LIQUID LIGHT", mandala: "MANDALA MAKER", nodeweaver: "ZEN NODE WEAVER", looper: "HARMONIC LOOPER", beats: "NEON BEATS", neondevil: "NEON DEVIL", snake: "NEON SNAKE", pong: "NEON PONG", runner: "CYBER RUNNER", invaders: "SPACE INVADERS", simon: "NEON SIMON", bombercrazy: "BOMBER CRAZY", dripp: "DRIPP DROP"
+    };
+    const prettyName = gameNamesMap[activeGame] || activeGame.toUpperCase();
+
+    let text = `I just scored ${bragScore} in ${prettyName} on Dripp Media! 🕹️💧 Think you can beat my high score?`;
+    if (activeGame === "neondevil") text = `I'm losing my mind in NEON DEVIL on Dripp Media! 💀 This game is an absolute trap. Can you survive?`;
+    if (activeGame === "tanks") text = `I just annihilated my opponent in POCKET TANKS on Dripp Media! 🚀🔥 Who's next?`;
+    
+    const url = "https://drippmedia.com";
+    const shareData = { title: 'Dripp Media Arcade', text: text, url: url };
+
+    try {
+      if (navigator.share) {
+         await navigator.share(shareData);
+      } else {
+         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+         window.open(twitterUrl, '_blank');
+      }
+    } catch (err) {
+      navigator.clipboard.writeText(`${text} Play now at ${url}`);
+      alert("Score and link copied to clipboard! Paste it anywhere to challenge your friends.");
+    }
+  };
+
+  useEffect(() => {
+     audioRef.current = new RetroAudio();
+     return () => audioRef.current.stopBGM();
+  }, []);
+
+  const initAudio = () => {
+     if (audioRef.current) audioRef.current.init();
+  };
 
   // Sync refs
   useEffect(() => { activeGameRef.current = activeGame; }, [activeGame]);
@@ -1309,6 +1383,23 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
     if (activeGame !== "none") {
       setIsHelpOpen(true);
       setIsPaused(true);
+      
+      initAudio();
+      if (['looper', 'beats', 'liquid', 'mandala', 'nodeweaver'].includes(activeGame)) {
+         audioRef.current.playBGM('zen');
+      } else if (['bullethell'].includes(activeGame)) {
+         audioRef.current.playBGM('boss');
+      } else if (activeGame === 'neondevil') {
+         audioRef.current.playBGM('devil');
+      } else if (activeGame === 'bombercrazy') {
+         audioRef.current.playBGM('bomber');
+      } else if (activeGame === 'pockettanks') {
+         audioRef.current.playBGM('tanks');
+      } else {
+         audioRef.current.playBGM('arcade');
+      }
+    } else {
+      if (audioRef.current) audioRef.current.stopBGM();
     }
   }, [activeGame]);
 
@@ -1398,6 +1489,9 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
       setBreakLevel: (v) => { breakerLevelRef.current = v; setBreakerLevel(v); },
       setScopeScore: (v) => { scopeScoreRef.current = v; setScopeScore(v); },
       setGameState: (v) => { gameStateRef.current = v; setGameState(v); },
+      playSound: (type) => { if (audioRef.current) audioRef.current.playSFX(type); },
+      playBGM: (type) => { if (audioRef.current) audioRef.current.playBGM(type); },
+      stopBGM: () => { if (audioRef.current) audioRef.current.stopBGM(); },
       triggerGsapMilestone: (x, y) => {
         gsap.to(".char", {
           scale: 1.35, color: "#fff", textShadow: "0 0 50px rgba(255,255,255,0.9)", duration: 0.1, yoyo: true, repeat: 3, stagger: 0.02, ease: "power2.out",
@@ -1446,7 +1540,30 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
     >{children}</button>
   );
 
-  const gameName = activeGame === "breaker" ? "NEON BREAKER" : activeGame === "scope" ? "SCOPE CREEP" : activeGame === "pendulum" ? "NEON PENDULUM" : activeGame === "gravity" ? "GRAVITY FLIP" : activeGame === "slingshot" ? "SLINGSHOT NINJA" : activeGame === "bullethell" ? "BULLET HELL" : activeGame === "tanks" ? "NEON TANKS" : activeGame === "sandbox" ? "LIQUID LIGHT" : activeGame === "mandala" ? "MANDALA MAKER" : activeGame === "nodeweaver" ? "ZEN NODE WEAVER" : activeGame === "looper" ? "HARMONIC LOOPER" : activeGame === "beats" ? "NEON BEATS" : "DRIPP DROP";
+  const gameNamesMap = {
+    breaker: "NEON BREAKER",
+    scope: "SCOPE CREEP",
+    pendulum: "NEON PENDULUM",
+    gravity: "GRAVITY FLIP",
+    slingshot: "SLINGSHOT NINJA",
+    bullethell: "BULLET HELL",
+    tanks: "POCKET TANKS",
+    sandbox: "LIQUID LIGHT",
+    liquid: "LIQUID LIGHT",
+    mandala: "MANDALA MAKER",
+    nodeweaver: "ZEN NODE WEAVER",
+    looper: "HARMONIC LOOPER",
+    beats: "NEON BEATS",
+    neondevil: "NEON DEVIL",
+    snake: "NEON SNAKE",
+    pong: "NEON PONG",
+    runner: "CYBER RUNNER",
+    invaders: "SPACE INVADERS",
+    simon: "NEON SIMON",
+    bombercrazy: "BOMBER CRAZY",
+    dripp: "DRIPP DROP"
+  };
+  const gameName = gameNamesMap[activeGame] || "DRIPP DROP";
   const isCreativeGame = ['sandbox', 'mandala', 'nodeweaver', 'looper', 'beats'].includes(activeGame);
 
   return (
@@ -1593,11 +1710,43 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
             }} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
               RESTART GAME
             </button>
+            <button onClick={() => {
+              const newMutedState = !isMuted;
+              setIsMuted(newMutedState);
+              if (audioRef.current) {
+                audioRef.current.setMute(newMutedState);
+              }
+            }} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
+              {isMuted ? "UNMUTE AUDIO" : "MUTE AUDIO"}
+            </button>
             {!isCreativeGame && (
-              <button style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
+              <button onClick={handleBrag} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
                 BRAG YOUR SCORE
               </button>
             )}
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", maxWidth: "300px", marginTop: "15px" }}>
+              <label style={{ color: "#fff", fontFamily: "'Clash Display', sans-serif", fontSize: "0.85rem", display: "flex", justifyContent: "space-between" }}>
+                MUSIC VOL
+                <span style={{color: "var(--brand-yellow)"}}>{Math.round(bgmVolume * 100)}%</span>
+              </label>
+              <input type="range" min="0" max="1" step="0.05" value={bgmVolume} onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setBgmVolume(v);
+                if (audioRef.current) audioRef.current.setBGMVolume(v);
+              }} style={{ accentColor: "#ebd73f", cursor: "pointer" }} />
+
+              <label style={{ color: "#fff", fontFamily: "'Clash Display', sans-serif", fontSize: "0.85rem", display: "flex", justifyContent: "space-between", marginTop: "5px" }}>
+                SFX VOL
+                <span style={{color: "var(--brand-yellow)"}}>{Math.round(sfxVolume * 100)}%</span>
+              </label>
+              <input type="range" min="0" max="1" step="0.05" value={sfxVolume} onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setSfxVolume(v);
+                if (audioRef.current) audioRef.current.setSFXVolume(v);
+              }} style={{ accentColor: "#ebd73f", cursor: "pointer" }} />
+            </div>
+            
           </div>
         </div>
       )}
@@ -1626,6 +1775,11 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
             }} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid #ebd73f", color: "#ebd73f", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(235,215,63,0.1)"; e.currentTarget.style.boxShadow = "0 0 20px rgba(235,215,63,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.boxShadow = "none"; }}>
               PLAY AGAIN
             </button>
+            {!isCreativeGame && (
+              <button onClick={handleBrag} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
+                BRAG YOUR SCORE
+              </button>
+            )}
             <button onClick={() => { setActiveGame("none"); if (onClose) onClose(); }} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
               MENU
             </button>

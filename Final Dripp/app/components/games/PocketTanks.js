@@ -14,9 +14,11 @@ export default class PocketTanks {
        { id: 'neon', name: 'NEON CITY', stroke: '#00ffcc', gradStart: 'rgba(0, 255, 200, 0.15)', gradEnd: 'rgba(0, 50, 100, 0.4)', bg: 'rgba(5, 10, 15, 0.8)', frequency1: 0.004, amp1: 100, frequency2: 0.015, amp2: 40 },
        { id: 'desert', name: 'CYBER DESERT', stroke: '#ffaa00', gradStart: 'rgba(255, 170, 0, 0.15)', gradEnd: 'rgba(100, 30, 0, 0.4)', bg: 'rgba(20, 10, 5, 0.8)', frequency1: 0.002, amp1: 60, frequency2: 0.03, amp2: 20 },
        { id: 'ice', name: 'ICE MOON', stroke: '#00ffff', gradStart: 'rgba(0, 255, 255, 0.15)', gradEnd: 'rgba(0, 50, 150, 0.4)', bg: 'rgba(5, 15, 25, 0.8)', frequency1: 0.008, amp1: 120, frequency2: 0.01, amp2: 50 },
-       { id: 'toxic', name: 'TOXIC WASTELAND', stroke: '#33ff33', gradStart: 'rgba(50, 255, 50, 0.15)', gradEnd: 'rgba(0, 80, 0, 0.4)', bg: 'rgba(10, 15, 10, 0.8)', frequency1: 0.006, amp1: 80, frequency2: 0.02, amp2: 60 }
+       { id: 'toxic', name: 'TOXIC WASTELAND', stroke: '#33ff33', gradStart: 'rgba(50, 255, 50, 0.15)', gradEnd: 'rgba(0, 80, 0, 0.4)', bg: 'rgba(10, 15, 10, 0.8)', frequency1: 0.006, amp1: 80, frequency2: 0.02, amp2: 60 },
+       { id: 'volcano', name: 'NEON VOLCANO', stroke: '#ff3300', gradStart: 'rgba(255, 50, 0, 0.2)', gradEnd: 'rgba(100, 0, 0, 0.6)', bg: 'rgba(15, 5, 5, 0.9)', frequency1: 0.003, amp1: 150, frequency2: 0.02, amp2: 70 },
+       { id: 'core', name: 'CYBER CORE', stroke: '#ff00ff', gradStart: 'rgba(255, 0, 255, 0.15)', gradEnd: 'rgba(50, 0, 50, 0.5)', bg: 'rgba(10, 5, 15, 0.85)', frequency1: 0.01, amp1: 100, frequency2: 0.05, amp2: 30 }
     ];
-    this.selectedMapIdx = 0;
+    this.selectedMapIdx = 2; // Default to Ice Moon
     
     this.terrain = [];
     this.generateTerrain();
@@ -31,12 +33,17 @@ export default class PocketTanks {
        'roller': { name: 'GROUND ROLLER', damage: 25, radius: 40, color: '#ff9900' },
        'bouncer': { name: 'BOUNCER', damage: 30, radius: 40, color: '#00aaff' },
        'volcanic': { name: 'VOLCANIC', damage: 10, radius: 20, color: '#ff5500' },
-       'sniper': { name: 'SNIPER', damage: 50, radius: 15, color: '#ffff00' },
+       'sniper': { name: 'SNIPER', damage: 50, radius: 15, color: '#ffff00', gravityScale: 0 },
        'blackhole': { name: 'BLACK HOLE', damage: 80, radius: 60, color: '#9900ff' },
        'boomerang': { name: 'BOOMERANG', damage: 35, radius: 30, color: '#33ccff' },
        'teleporter': { name: 'TELEPORTER', damage: 0, radius: 10, color: '#00ffff' },
        'meteor': { name: 'METEOR', damage: 60, radius: 65, color: '#ff3300' },
-       'drill': { name: 'EARTH DRILL', damage: 40, radius: 40, color: '#aaaaaa' }
+       'drill': { name: 'EARTH DRILL', damage: 40, radius: 40, color: '#aaaaaa' },
+       'homing': { name: 'HOMING', damage: 30, radius: 35, color: '#ff00aa' },
+       'napalm': { name: 'NAPALM', damage: 10, radius: 60, color: '#ff5500' },
+       'cruiser': { name: 'CRUISER', damage: 25, radius: 30, color: '#00ff55' },
+       'jackhammer': { name: 'JACKHAMMER', damage: 30, radius: 25, color: '#cccccc' },
+       'romancandle': { name: 'ROMAN CANDLE', damage: 15, radius: 20, color: '#ff00ff' }
     };
     
     this.player = {
@@ -111,7 +118,12 @@ export default class PocketTanks {
         { id: 'boomerang', count: Math.floor(Math.random() * 3) + 1 },
         { id: 'teleporter', count: Math.floor(Math.random() * 2) + 1 },
         { id: 'meteor', count: Math.floor(Math.random() * 2) + 1 },
-        { id: 'drill', count: Math.floor(Math.random() * 2) + 1 }
+        { id: 'drill', count: Math.floor(Math.random() * 2) + 1 },
+        { id: 'homing', count: Math.floor(Math.random() * 3) + 1 },
+        { id: 'napalm', count: Math.floor(Math.random() * 2) + 1 },
+        { id: 'cruiser', count: Math.floor(Math.random() * 2) + 1 },
+        { id: 'jackhammer', count: Math.floor(Math.random() * 2) + 1 },
+        { id: 'romancandle', count: Math.floor(Math.random() * 3) + 1 }
      ];
   }
 
@@ -198,14 +210,18 @@ export default class PocketTanks {
        const w = this.canvas.width;
        const h = this.canvas.height;
        
-       const cW = 180, cH = 220;
-       const gapX = 30;
-       const totalW = (cW * 4) + (gapX * 3);
+       const cW = 160, cH = 180;
+       const gapX = 20, gapY = 20;
+       const cols = 3;
+       const totalW = (cW * cols) + (gapX * (cols - 1));
        const startX = w/2 - totalW/2;
-       const cY = h/2 - 60;
+       const startY = h/2 - (cH * 2 + gapY) / 2 + 10;
        
        for (let i = 0; i < this.maps.length; i++) {
-          const cX = startX + i * (cW + gapX);
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const cX = startX + col * (cW + gapX);
+          const cY = startY + row * (cH + gapY);
           if (cx > cX && cx < cX + cW && cy > cY && cy < cY + cH) {
              this.selectedMapIdx = i;
              this.startMatch();
@@ -556,8 +572,19 @@ export default class PocketTanks {
           let detonate = false;
 
           if (p.type === 'laser' || p.type === 'sniper') {
-             p.vy = 0; 
+             p.vy *= 1.05; 
              p.vx *= 1.05;
+          } else if (p.type === 'homing') {
+             const target = p.owner === 'player' ? this.ai : this.player;
+             const tx = target.x - p.x;
+             const ty = target.y - p.y;
+             const dist = Math.hypot(tx, ty);
+             if (dist > 0) {
+                 p.vx += (tx / dist) * 0.4;
+                 p.vy += (ty / dist) * 0.4;
+             }
+             p.vx *= 0.98;
+             p.vy *= 0.98;
           } else if (p.type === 'boomerang') {
              p.vx -= Math.sign(p.vx) * 0.25; // Accelerate backwards
              p.vy += this.gravity * 0.5; // lower gravity for cooler arc
@@ -664,6 +691,48 @@ export default class PocketTanks {
              if (p.life > 150) detonate = true; else { hit = false; detonate = false; }
           }
           
+          if (p.type === 'jackhammer' && hit) {
+             p.vy = 5; p.vx = 0;
+             p.life += 15;
+             this.destroyTerrain(p.x, p.y, 10);
+             if (p.life > 200) detonate = true; else { hit = false; detonate = false; }
+          }
+          
+          if (p.type === 'romancandle' && p.vy > 0 && p.life % 10 === 0) {
+             this.projectiles.push({
+                x: p.x, y: p.y,
+                vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+                type: 'standard', damage: 5, radius: 15, color: '#ff00ff', trail: [], life: 0, bounces: 0, owner: p.owner
+             });
+          }
+          
+          if (p.type === 'cruiser' && hit) {
+             p.vy *= -0.7; p.y -= 2;
+             p.bounces++;
+             if (p.bounces === 1) {
+                // Split into 3
+                for (let j=0; j<3; j++) {
+                   this.projectiles.push({
+                      x: p.x, y: p.y,
+                      vx: p.vx + (Math.random()-0.5)*6, vy: p.vy - Math.random()*5,
+                      type: 'bouncer', damage: 15, radius: 20, color: '#00ff55', trail: [], life: 0, bounces: 1, owner: p.owner
+                   });
+                }
+             }
+             if (p.bounces > 3) detonate = true; else { hit = false; detonate = false; }
+          }
+          
+          if (p.type === 'napalm' && hit) {
+             detonate = true;
+             for (let j=0; j<20; j++) {
+                this.projectiles.push({
+                   x: p.x, y: p.y,
+                   vx: (Math.random()-0.5)*15, vy: -Math.random()*5 - 2,
+                   type: 'standard', damage: 2, radius: 10, color: '#ff5500', trail: [], life: 0, bounces: 0, owner: p.owner
+                });
+             }
+          }
+
           if (detonate) {
              if (p.type === 'teleporter') {
                 this.createExplosion(p.x, p.y, 20, '#00ffff', 0);
@@ -717,19 +786,142 @@ export default class PocketTanks {
     }
     
     const map = this.maps[this.selectedMapIdx] || this.maps[0];
+    
+    // Background
     ctx.fillStyle = map.bg;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    const time = Date.now();
+    ctx.save();
+    if (map.id === 'neon') {
+       // City grid
+       ctx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
+       ctx.lineWidth = 1;
+       ctx.beginPath();
+       for(let i=0; i<this.canvas.width; i+=40) { ctx.moveTo(i, 0); ctx.lineTo(i, this.canvas.height); }
+       for(let i=0; i<this.canvas.height; i+=40) { ctx.moveTo(0, i); ctx.lineTo(this.canvas.width, i); }
+       ctx.stroke();
+       // Distant buildings
+       ctx.fillStyle = 'rgba(0, 100, 100, 0.2)';
+       for(let i=0; i<this.canvas.width; i+=60) {
+          const h = 100 + Math.sin(i)*50;
+          ctx.fillRect(i, this.canvas.height - h - 100, 40, h + 100);
+       }
+    } else if (map.id === 'desert') {
+       // Distant suns
+       ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
+       ctx.shadowBlur = 40; ctx.shadowColor = '#ff6600';
+       ctx.beginPath(); ctx.arc(200, 150, 60, 0, Math.PI*2); ctx.fill();
+       ctx.fillStyle = 'rgba(255, 200, 0, 0.6)';
+       ctx.beginPath(); ctx.arc(280, 120, 30, 0, Math.PI*2); ctx.fill();
+       ctx.shadowBlur = 0;
+       // Distant dunes
+       ctx.fillStyle = 'rgba(100, 30, 0, 0.2)';
+       ctx.beginPath();
+       ctx.moveTo(0, this.canvas.height);
+       for (let x = 0; x < this.canvas.width; x+=20) {
+          ctx.lineTo(x, this.canvas.height*0.5 + Math.sin(x*0.005)*80);
+       }
+       ctx.lineTo(this.canvas.width, this.canvas.height);
+       ctx.fill();
+    } else if (map.id === 'ice') {
+       // Snow/Stars
+       ctx.fillStyle = '#fff';
+       for (let i=0; i<50; i++) {
+          const sx = (Math.sin(i*123) * this.canvas.width + time * 0.05 * (i%3+1)) % this.canvas.width;
+          const sy = (Math.cos(i*321) * this.canvas.height + time * 0.05 * (i%3+1)) % this.canvas.height;
+          ctx.fillRect(sx, sy, 2, 2);
+       }
+       // Frozen peaks
+       ctx.fillStyle = 'rgba(0, 150, 255, 0.15)';
+       ctx.beginPath(); ctx.moveTo(0, this.canvas.height);
+       for (let x = 0; x < this.canvas.width; x+=40) {
+          ctx.lineTo(x, this.canvas.height*0.6 + Math.sin(x*0.01)*120 + Math.cos(x*0.05)*40);
+       }
+       ctx.lineTo(this.canvas.width, this.canvas.height);
+       ctx.fill();
+    } else if (map.id === 'toxic') {
+       // Toxic fog
+       ctx.fillStyle = 'rgba(50, 255, 50, 0.05)';
+       for(let i=0; i<5; i++) {
+          ctx.fillRect(0, this.canvas.height - i*50 - Math.sin(time*0.001 + i)*20, this.canvas.width, 50);
+       }
+       // Floating bubbles
+       ctx.fillStyle = 'rgba(50, 255, 50, 0.3)';
+       for (let i=0; i<15; i++) {
+          const bx = (Math.sin(i*77) * this.canvas.width + Math.sin(time*0.002 + i)*30 + this.canvas.width) % this.canvas.width;
+          const by = this.canvas.height - ((time * 0.05 * (i%2+1) + i*100) % (this.canvas.height/2));
+          ctx.beginPath(); ctx.arc(bx, by, 5 + (i%5), 0, Math.PI*2); ctx.fill();
+       }
+    } else if (map.id === 'volcano') {
+       // Floating Embers
+       ctx.fillStyle = '#ffaa00';
+       ctx.shadowBlur = 10; ctx.shadowColor = '#ff3300';
+       for (let i=0; i<40; i++) {
+          const ex = (Math.sin(i*99) * this.canvas.width + Math.sin(time*0.001 + i)*50 + this.canvas.width) % this.canvas.width;
+          const ey = this.canvas.height - ((time * 0.1 * (i%3+1) + i*50) % this.canvas.height);
+          ctx.fillRect(ex, ey, 3, 3);
+       }
+       ctx.shadowBlur = 0;
+       // Distant volcano peaks
+       ctx.fillStyle = 'rgba(150, 0, 0, 0.2)';
+       ctx.beginPath(); ctx.moveTo(0, this.canvas.height);
+       for (let x = 0; x < this.canvas.width; x+=60) {
+          ctx.lineTo(x, this.canvas.height*0.5 + Math.sin(x*0.02)*100 + Math.cos(x*0.07)*30);
+       }
+       ctx.lineTo(this.canvas.width, this.canvas.height);
+       ctx.fill();
+    } else if (map.id === 'core') {
+       // Binary matrix rain
+       ctx.fillStyle = 'rgba(255, 0, 255, 0.15)';
+       ctx.font = '16px monospace';
+       for (let i=0; i<30; i++) {
+          const mx = (i * 60) % this.canvas.width;
+          const my = ((time * 0.1 + i*123) % this.canvas.height);
+          ctx.fillText(Math.random()>0.5?'1':'0', mx, my);
+          ctx.fillText(Math.random()>0.5?'0':'1', mx, my - 20);
+          ctx.fillText(Math.random()>0.5?'1':'1', mx, my - 40);
+       }
+    }
+    ctx.restore();
+    
+    ctx.beginPath();
+    ctx.moveTo(0, this.canvas.height);
+    for (let x = 0; x < this.canvas.width; x++) {
+       ctx.lineTo(x, this.terrain[x]);
+    }
+    ctx.lineTo(this.canvas.width, this.canvas.height);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, this.canvas.height/2, 0, this.canvas.height);
+    grad.addColorStop(0, map.gradStart);
+    grad.addColorStop(1, map.gradEnd);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = map.stroke;
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = map.stroke;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
     
     if (this.state === "menu" || this.state === "map_select") {
        const w = this.canvas.width;
        const h = this.canvas.height;
        
-       ctx.fillStyle = "#ffffff";
-       ctx.font = "bold 48px 'Panchang', sans-serif";
-       ctx.textAlign = "center";
-       ctx.shadowBlur = 20; ctx.shadowColor = "#00ffcc";
-       ctx.fillText("NEON TANKS", w/2, h/2 - 120);
-       ctx.shadowBlur = 0;
+       if (this.state === "map_select") {
+          // Dim the background terrain for better map card visibility
+          ctx.fillStyle = "rgba(10, 10, 15, 0.75)";
+          ctx.fillRect(0, 0, w, h);
+       }
+       
+       if (this.state === "menu") {
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 48px 'Panchang', sans-serif";
+          ctx.textAlign = "center";
+          ctx.shadowBlur = 20; ctx.shadowColor = "#00ffcc";
+          ctx.fillText("NEON TANKS", w/2, h/2 - 120);
+          ctx.shadowBlur = 0;
+       }
        
        if (this.state === "menu") {
            ctx.font = "bold 16px 'Panchang', sans-serif";
@@ -764,19 +956,30 @@ export default class PocketTanks {
            drawBtn(1, "NORMAL", "#ffcc00");
            drawBtn(2, "HARD", "#ff0055");
        } else if (this.state === "map_select") {
-           ctx.font = "bold 16px 'Panchang', sans-serif";
-           ctx.fillStyle = "#ffaa00";
-           ctx.fillText("SELECT DEPLOYMENT ZONE", w/2, h/2 - 60);
+           ctx.font = "bold 24px 'Panchang', sans-serif";
+           ctx.fillStyle = "#fff";
+           ctx.textAlign = "center";
+           ctx.shadowBlur = 15; ctx.shadowColor = "#fff";
+           ctx.fillText("SELECT DEPLOYMENT ZONE", w/2, 80);
+           ctx.shadowBlur = 0;
            
-           const cW = 180, cH = 220;
-           const gapX = 30;
-           const totalW = (cW * this.maps.length) + (gapX * (this.maps.length - 1));
+           ctx.font = "12px sans-serif";
+           ctx.fillStyle = "rgba(255,255,255,0.5)";
+           ctx.fillText("CHOOSE YOUR BATTLEFIELD", w/2, 105);
+           
+           const cW = 240, cH = 150;
+           const gapX = 40, gapY = 40;
+           const cols = 3;
+           const totalW = (cW * cols) + (gapX * (cols - 1));
            const startX = w/2 - totalW/2;
-           const cY = h/2 - 20;
+           const startY = 150;
            
            for (let i = 0; i < this.maps.length; i++) {
               const map = this.maps[i];
-              const cX = startX + i * (cW + gapX);
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              const cX = startX + col * (cW + gapX);
+              const cY = startY + row * (cH + gapY);
               const hover = this.mouseX > cX && this.mouseX < cX + cW && this.mouseY > cY && this.mouseY < cY + cH;
               
               if (hover && this.selectedMapIdx !== i) {
@@ -784,27 +987,64 @@ export default class PocketTanks {
                   this.generateTerrain(); // Preview background!
               }
               
-              ctx.strokeStyle = map.stroke;
-              ctx.lineWidth = hover ? 4 : 2;
-              ctx.fillStyle = hover ? `rgba(255,255,255,0.1)` : `rgba(0,0,0,0.7)`;
-              if (hover) { ctx.shadowBlur = 25; ctx.shadowColor = map.stroke; }
+              ctx.save();
+              // Card background
+              ctx.fillStyle = `rgba(10, 15, 20, 0.9)`;
               ctx.beginPath(); ctx.roundRect(cX, cY, cW, cH, 16);
-              ctx.fill(); ctx.stroke();
+              ctx.fill();
+              
+              // Inner preview (simulated)
+              ctx.save();
+              ctx.beginPath(); ctx.roundRect(cX, cY, cW, cH, 16);
+              ctx.clip();
+              
+              ctx.fillStyle = map.bg;
+              ctx.fillRect(cX, cY, cW, cH);
+              const mapGrad = ctx.createLinearGradient(0, cY, 0, cY+cH);
+              mapGrad.addColorStop(0, map.gradStart); mapGrad.addColorStop(1, map.gradEnd);
+              ctx.fillStyle = mapGrad;
+              ctx.fillRect(cX, cY, cW, cH);
+              
+              // Terrain wave in preview
+              ctx.fillStyle = map.stroke;
+              ctx.globalAlpha = 0.2;
+              ctx.beginPath();
+              ctx.moveTo(cX, cY+cH);
+              for (let x=0; x<=cW; x+=10) {
+                 ctx.lineTo(cX + x, cY + cH*0.6 + Math.sin(x*0.05 + i)*20);
+              }
+              ctx.lineTo(cX+cW, cY+cH);
+              ctx.fill();
+              ctx.globalAlpha = 1.0;
+              
+              // Dark gradient overlay at bottom for text
+              const textGrad = ctx.createLinearGradient(0, cY+cH-60, 0, cY+cH);
+              textGrad.addColorStop(0, 'rgba(0,0,0,0)');
+              textGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
+              ctx.fillStyle = textGrad;
+              ctx.fillRect(cX, cY+cH-60, cW, 60);
+              ctx.restore();
+              
+              // Card border
+              ctx.strokeStyle = hover ? "#fff" : map.stroke;
+              ctx.lineWidth = hover ? 3 : 1;
+              if (hover) { ctx.shadowBlur = 20; ctx.shadowColor = map.stroke; }
+              ctx.beginPath(); ctx.roundRect(cX, cY, cW, cH, 16);
+              ctx.stroke();
               ctx.shadowBlur = 0;
               
-              // Preview Box
-              ctx.fillStyle = map.bg;
-              ctx.beginPath(); ctx.roundRect(cX + 10, cY + 10, cW - 20, cH - 80, 8); ctx.fill();
-              const grad = ctx.createLinearGradient(0, cY+10, 0, cY+cH-70);
-              grad.addColorStop(0, map.gradStart); grad.addColorStop(1, map.gradEnd);
-              ctx.fillStyle = grad;
-              ctx.beginPath(); ctx.roundRect(cX + 10, cY + 10, cW - 20, cH - 80, 8); ctx.fill();
-              
-              ctx.fillStyle = "#fff";
-              ctx.font = "bold 14px 'Panchang', sans-serif";
+              // Text
+              ctx.fillStyle = hover ? "#fff" : "rgba(255,255,255,0.8)";
+              ctx.font = "bold 13px 'Panchang', sans-serif";
               ctx.textBaseline = "middle";
-              ctx.fillText(map.name, cX + cW/2, cY + cH - 30);
+              ctx.fillText(map.name, cX + cW/2, cY + cH - 25);
+              
+              ctx.fillStyle = map.stroke;
+              ctx.font = "10px sans-serif";
+              ctx.fillText(`ZONE 0${i+1}`, cX + cW/2, cY + cH - 45);
+              
               ctx.textBaseline = "alphabetic";
+              ctx.restore();
            }
        }
        
@@ -818,25 +1058,6 @@ export default class PocketTanks {
     const windVal = this.wind * 100;
     const windText = windVal < 0 ? `<< ${Math.abs(windVal).toFixed(1)}` : `${windVal.toFixed(1)} >>`;
     ctx.fillText(`WIND: ${windText}`, this.canvas.width/2, 30);
-    
-    ctx.beginPath();
-    ctx.moveTo(0, this.canvas.height);
-    for (let x = 0; x < this.canvas.width; x++) {
-       ctx.lineTo(x, this.terrain[x]);
-    }
-    ctx.lineTo(this.canvas.width, this.canvas.height);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0, this.canvas.height/2, 0, this.canvas.height);
-    grad.addColorStop(0, map.gradStart);
-    grad.addColorStop(1, map.gradEnd);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.strokeStyle = map.stroke;
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "#00ffcc";
-    ctx.stroke();
-    ctx.shadowBlur = 0;
 
     const drawTank = (tank, label) => {
        if (tank.hp <= 0 && this.state === "game_over") return;
@@ -1076,7 +1297,7 @@ export default class PocketTanks {
        // Cover Flow Weapon Selector (Center)
        ctx.save();
        ctx.beginPath();
-       ctx.rect(w/2 - 180, this.uiY + 5, 360, 80);
+       ctx.rect(w/2 - 180, this.uiY + 2, 360, 95);
        ctx.clip();
 
        for (let i=0; i<this.player.inventory.length; i++) {
@@ -1092,11 +1313,11 @@ export default class PocketTanks {
           if (dist > 250) continue; // optimize render
           
           ctx.save();
-          ctx.translate(ix, this.uiY + 45);
+          ctx.translate(ix, this.uiY + 48);
           ctx.scale(scale, scale);
           
           ctx.fillStyle = `rgba(0,0,0,${0.8 * alpha})`;
-          ctx.beginPath(); ctx.roundRect(-55, -25, 110, 50, 12); ctx.fill();
+          ctx.beginPath(); ctx.roundRect(-60, -35, 120, 70, 12); ctx.fill();
           
           if (i === this.player.selectedWeaponIdx) {
              ctx.strokeStyle = typeData.color;
@@ -1111,11 +1332,19 @@ export default class PocketTanks {
           ctx.globalAlpha = alpha;
           ctx.font = "bold 11px 'Panchang', sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText(typeData.name, 0, -2, 100);
+          ctx.fillText(typeData.name, 0, -15, 110);
+          
+          ctx.fillStyle = "#fff";
+          ctx.font = "9px 'Panchang', sans-serif";
+          ctx.globalAlpha = alpha * 0.9;
+          const gravityScale = typeData.gravityScale !== undefined ? typeData.gravityScale : 1;
+          const weight = gravityScale === 0 ? "LIGHT" : gravityScale > 1 ? "HEAVY" : "MED";
+          ctx.fillText(`DMG:${typeData.damage} RAD:${typeData.radius} WT:${weight}`, 0, 3, 110);
           
           ctx.fillStyle = "#aaa";
+          ctx.globalAlpha = alpha;
           ctx.font = "10px sans-serif";
-          ctx.fillText(`x${item.count > 50 ? '∞' : item.count}`, 0, 15);
+          ctx.fillText(`x${item.count > 50 ? '∞' : item.count}`, 0, 22);
           
           ctx.restore();
        }
