@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { shareScoreImage } from '../utils/shareUtils';
 
 import PendulumGame from "./games/Pendulum";
 import GravityFlip from "./games/GravityFlip";
@@ -137,8 +138,8 @@ function createGameEngine(canvas, callbacks) {
   // ── Resize ──────────────────────────────────────────────────────────────────
   function resize() {
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
+    canvas.width = (window.innerWidth || document.documentElement.clientWidth || 800) * dpr;
+    canvas.height = (window.innerHeight || document.documentElement.clientHeight || 800) * dpr;
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -645,6 +646,10 @@ function createGameEngine(canvas, callbacks) {
         for (let i = 0; i < spawnAttempts; i++) {
            if (Math.random() < rainIntensity) drops.push(new Drop(Math.random() < 0.15));
            if (Math.random() < rainIntensity * 0.15) drops.push(new Drop(Math.random() < 0.15));
+        }
+
+        if (drops.length === 0 && getGameStateRef() === 'playing' && !getIsPausedRef()) {
+           drops.push(new Drop(Math.random() < 0.15));
         }
         
         const glowGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/1.5);
@@ -1335,6 +1340,19 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
   const isMountedRef = useRef(false); // Skip first-render effect execution
   const audioRef = useRef(null);
 
+  const checkIsHighScore = () => {
+    let currentScore = score;
+    if (activeGame === "breaker") currentScore = breakerScore;
+    if (activeGame === "scope") currentScore = scopeScore;
+
+    if (activeGame === 'dripp') {
+      const globalBest = parseInt(localStorage.getItem('dripp_highScore') || '0', 10);
+      return currentScore >= globalBest && currentScore > 0;
+    }
+    const localBest = parseInt(localStorage.getItem(`dripp_${activeGame}_highScore`) || '0', 10);
+    return currentScore >= localBest && currentScore > 0;
+  };
+
   const handleBrag = async () => {
     let bragScore = score;
     if (activeGame === "breaker") bragScore = breakerScore;
@@ -1345,24 +1363,12 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
     };
     const prettyName = gameNamesMap[activeGame] || activeGame.toUpperCase();
 
-    let text = `I just scored ${bragScore} in ${prettyName} on Dripp Media! 🕹️💧 Think you can beat my high score?`;
-    if (activeGame === "neondevil") text = `I'm losing my mind in NEON DEVIL on Dripp Media! 💀 This game is an absolute trap. Can you survive?`;
-    if (activeGame === "tanks") text = `I just annihilated my opponent in POCKET TANKS on Dripp Media! 🚀🔥 Who's next?`;
-    
-    const url = "https://drippmedia.com";
-    const shareData = { title: 'Dripp Media Arcade', text: text, url: url };
-
-    try {
-      if (navigator.share) {
-         await navigator.share(shareData);
-      } else {
-         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-         window.open(twitterUrl, '_blank');
-      }
-    } catch (err) {
-      navigator.clipboard.writeText(`${text} Play now at ${url}`);
-      alert("Score and link copied to clipboard! Paste it anywhere to challenge your friends.");
+    const isTopRecord = checkIsHighScore();
+    if (isTopRecord && activeGame !== 'dripp') {
+      localStorage.setItem(`dripp_${activeGame}_highScore`, bragScore.toString());
     }
+
+    await shareScoreImage(bragScore, prettyName, isTopRecord);
   };
 
   useEffect(() => {
@@ -1580,9 +1586,9 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
         </button>
       </div>
 
-      {/* Top Right: Exact Score HUD */}
+      {/* Bottom Right: Exact Score HUD */}
       {activeGame !== "none" && activeGame !== "cyber_racer" && activeGame !== "neon_blocks" && activeGame !== "bullethell" && activeGame !== "tanks" && !isCreativeGame && (
-        <div style={{ position: "absolute", top: "30px", right: "30px", textAlign: "right", pointerEvents: "none", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+        <div style={{ position: "absolute", bottom: "30px", right: "30px", textAlign: "right", pointerEvents: "none", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
           <div style={{ fontSize: "0.8rem", color: "#888", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "5px" }}>
              {activeGame === "simon" ? "ROUND" : (activeGame === "snake" || activeGame === "slingshot") ? "SCORE" : activeGame === "gravity" ? "DISTANCE" : "SCORE"}
           </div>
@@ -1721,7 +1727,7 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
             </button>
             {!isCreativeGame && (
               <button onClick={handleBrag} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
-                BRAG YOUR SCORE
+                {checkIsHighScore() ? "SHARE #1 LEADERBOARD SCORE" : "BRAG YOUR SCORE"}
               </button>
             )}
             
@@ -1777,7 +1783,7 @@ export default function ArcadeEngine({ onClose, forcedGame }) {
             </button>
             {!isCreativeGame && (
               <button onClick={handleBrag} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
-                BRAG YOUR SCORE
+                {checkIsHighScore() ? "SHARE #1 LEADERBOARD SCORE" : "BRAG YOUR SCORE"}
               </button>
             )}
             <button onClick={() => { setActiveGame("none"); if (onClose) onClose(); }} style={{ padding: "12px 32px", borderRadius: "30px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", fontFamily: "'Clash Display', sans-serif", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "2px", cursor: "pointer", transition: "all 0.3s" }} onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>

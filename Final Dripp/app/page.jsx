@@ -5,6 +5,9 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { createScoreGuard } from "./lib/scoreGuard";
 import { supabase } from "./utils/supabaseClient";
+import AuthModal from './components/AuthModal';
+import ProfileWidget from './components/ProfileWidget';
+import { generateScoreImage } from './utils/shareUtils';
 
 const CustomCursor = memo(() => {
   return <div className="cursor"></div>;
@@ -31,6 +34,8 @@ export default function ComingSoon() {
   const [hideHero, setHideHero] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [authModalInitialTab, setAuthModalInitialTab] = useState('signup');
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [gameState, setGameState] = useState('playing'); // 'playing', 'failed'
   const [isCapturing, setIsCapturing] = useState(false);
@@ -42,20 +47,94 @@ export default function ComingSoon() {
   // Trial Gate States
   const [playCount, setPlayCount] = useState(0);
   const [hasSignedUp, setHasSignedUp] = useState(false);
-  const [showSignupModal, setShowSignupModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState(false);
+  const highScoreRef = useRef(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedCount = parseInt(localStorage.getItem('dripp_playCount') || '0', 10);
-      const storedSignedUp = localStorage.getItem('dripp_hasSignedUp') === 'true';
-      setPlayCount(storedCount);
-      setHasSignedUp(storedSignedUp);
-    }
+    try {
+      const storedCount = localStorage.getItem('dripp_playCount');
+      if (storedCount) setPlayCount(parseInt(storedCount, 10));
+      
+      const userStr = localStorage.getItem('dripp_user');
+      let userObj = null;
+      if (userStr) {
+          setHasSignedUp(true);
+          try { userObj = JSON.parse(userStr); } catch(e) {}
+      }
+
+      let localHigh = 0;
+      const cachedHighScore = localStorage.getItem('dripp_highScore');
+      if (cachedHighScore) {
+          localHigh = parseInt(cachedHighScore, 10);
+          highScoreRef.current = localHigh;
+      } else {
+          localStorage.setItem('dripp_highScore', '0');
+      }
+
+      // Sync high score in both directions
+      if (userObj && userObj.email) {
+          supabase.from('users').select('highscore').eq('email', userObj.email).single()
+            .then(({ data }) => {
+                if (data) {
+                    const dbHigh = data.highscore || 0;
+                    if (localHigh > dbHigh) {
+                        supabase.from('users').update({ highscore: localHigh }).eq('email', userObj.email).then();
+                    } else if (dbHigh > localHigh) {
+                        highScoreRef.current = dbHigh;
+                        localStorage.setItem('dripp_highScore', dbHigh.toString());
+                    }
+                }
+            });
+      }
+    } catch(e) {}
   }, []);
+
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true);
+    setLeaderboardError(false);
+    
+    // Sync local score to DB before fetching leaderboard to ensure it's up to date
+    try {
+      const userStr = localStorage.getItem('dripp_user');
+      const localHigh = parseInt(localStorage.getItem('dripp_highScore') || '0', 10);
+      if (userStr && localHigh > 0) {
+          const userObj = JSON.parse(userStr);
+          if (userObj.email) {
+             const { data } = await supabase.from('users').select('highscore').eq('email', userObj.email).single();
+             if (data && localHigh > (data.highscore || 0)) {
+                 await supabase.from('users').update({ highscore: localHigh }).eq('email', userObj.email);
+             }
+          }
+      }
+    } catch(e) {}
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, highscore')
+        .order('highscore', { ascending: false })
+        .limit(3);
+      if (error) {
+        console.error("Leaderboard fetch error:", error);
+        setLeaderboardError(true);
+      } else if (data) {
+        setLeaderboardData(data);
+      }
+    } catch (e) {
+       console.error("Leaderboard catch error:", e);
+       setLeaderboardError(true);
+    }
+    setLeaderboardLoading(false);
+  };
+
+  useEffect(() => {
+     if (showLeaderboard) {
+        fetchLeaderboard();
+     }
+  }, [showLeaderboard]);
 
   useEffect(() => {
     if (gameState === 'failed' && !hasSignedUp) {
@@ -64,13 +143,43 @@ export default function ComingSoon() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('dripp_playCount', newCount.toString());
         }
-        if (newCount >= 2) {
+        if (newCount > 0 && newCount % 2 === 0) {
           setShowSignupModal(true);
         }
         return newCount;
       });
     }
-  }, [gameState, hasSignedUp]);
+
+    // High Score tracking and saving to Supabase for Dripp game
+    if (gameState === 'failed' && activeGame === 'dripp') {
+       console.log("GAME FAILED - Checking score. Score:", score, "HighScoreRef:", highScoreRef.current);
+       if (score > highScoreRef.current) {
+          console.log("Score is greater! Updating local and DB...");
+          highScoreRef.current = score;
+          localStorage.setItem('dripp_highScore', score.toString());
+          const userStr = localStorage.getItem('dripp_user');
+          if (userStr) {
+             try {
+                const userObj = JSON.parse(userStr);
+                if (userObj.email) {
+                   console.log("Found user email:", userObj.email, "Updating supabase...");
+                   supabase.from('users')
+                      .update({ highscore: score })
+                      .eq('email', userObj.email)
+                      .then(({error}) => {
+                         if (error) console.error("Error saving highscore to Supabase:", error);
+                         else console.log("Supabase update SUCCESS!");
+                      });
+                } else {
+                   console.log("No email found in userObj");
+                }
+             } catch (e) {
+                console.error("Error parsing user for highscore:", e);
+             }
+          }
+       }
+    }
+  }, [gameState, hasSignedUp, activeGame, score]);
   
   const isPausedRef = useRef(false);
   
@@ -192,8 +301,8 @@ export default function ComingSoon() {
     let isMobileCanvas = typeof window !== 'undefined' && window.innerWidth <= 768;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth || document.documentElement.clientWidth || 800;
+      canvas.height = window.innerHeight || document.documentElement.clientHeight || 800;
       isMobileCanvas = window.innerWidth <= 768;
     };
     window.addEventListener('resize', resize);
@@ -1109,6 +1218,11 @@ export default function ComingSoon() {
            if (Math.random() < rainIntensity * 0.15) drops.push(new Drop(Math.random() < 0.15));
         }
         
+        // Safety net: ensure there's always at least one drop on screen to prevent "blank screen" perception
+        if (drops.length === 0 && gameStateRef.current === 'playing' && !isPausedRef.current) {
+           drops.push(new Drop(Math.random() < 0.15));
+        }
+        
         drops.forEach(drop => { drop.update(); drop.draw(ctx); });
         drops = drops.filter(drop => !drop.markedForDeletion);
         
@@ -1198,22 +1312,19 @@ export default function ComingSoon() {
     try {
       setShowShareOptions(true);
       setIsCapturing(true);
-      const html2canvas = (await import('html2canvas')).default;
-      const cursor = document.querySelector('.cursor');
-      if (cursor) cursor.style.opacity = '0';
 
-      const canvas = await html2canvas(containerRef.current, {
-        backgroundColor: '#050505',
-        scale: 2,
-        ignoreElements: (element) => element.classList.contains('cursor') || element.classList.contains('easter-egg') || element.classList.contains('ui-overlay') || element.classList.contains('game-free-btn') || element.classList.contains('share-container')
-      });
+      const currentScore = activeGame === 'dripp' ? score : breakerScore;
+      const gameName = activeGame === 'dripp' ? 'Dripp' : 'Breaker';
+      const blob = await generateScoreImage(currentScore, gameName, false);
       
-      if (cursor) cursor.style.opacity = '1';
-
-      setPregeneratedShareUrl(canvas.toDataURL('image/png'));
-      setIsCapturing(false);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPregeneratedShareUrl(reader.result);
+        setIsCapturing(false);
+      };
+      reader.readAsDataURL(blob);
     } catch (error) {
-      console.error("Screenshot pre-generation failed:", error);
+      console.error("Score image generation failed:", error);
       setIsCapturing(false);
     }
   };
@@ -1293,42 +1404,12 @@ export default function ComingSoon() {
         const cursor = document.querySelector('.cursor');
         if(cursor) {
           cursor.classList.remove('active');
-          cursorActiveRef.current = false;
         }
       }}
     >
       {children}
     </button>
   );
-
-  const handleSignupSubmit = async (e) => {
-    e.preventDefault();
-    if (!signupName || !signupEmail) return;
-    setIsSubmitting(true);
-    
-    try {
-      const { error } = await supabase.from('users').insert([
-        { name: signupName, email: signupEmail }
-      ]);
-      if (error) {
-         console.error("Error saving user:", error);
-         alert("Error creating account. Please try again.");
-      } else {
-         if (typeof window !== 'undefined') {
-            localStorage.setItem('dripp_hasSignedUp', 'true');
-         }
-         } else {
-             scoreRef.current = 0; setScore(0);
-             scoreGuardRef.current.reset(); setCheatedSession(false);
-             setGameState('playing'); setIsPaused(false); setShowShareOptions(false);
-             if (window.initDrippGame) window.initDrippGame();
-         }
-      }
-    } catch (err) {
-      console.error(err);
-    }
-    setIsSubmitting(false);
-  };
 
   return (
     <div ref={containerRef} style={{
@@ -1343,108 +1424,34 @@ export default function ComingSoon() {
       overflow: 'hidden',
       touchAction: 'none' 
     }}>
-      {showSignupModal && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999,
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          background: 'rgba(5, 5, 5, 0.85)', 
-          animation: 'modalFadeIn 0.5s ease forwards',
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'linear-gradient(145deg, rgba(30,30,30,0.95) 0%, rgba(15,15,15,0.98) 100%)',
-            border: '1px solid rgba(235, 215, 63, 0.15)',
-            borderRadius: '24px', padding: '40px', width: '100%', maxWidth: '420px',
-            animation: 'modalScaleUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)',
-            textAlign: 'center', position: 'relative', overflow: 'hidden'
-          }}>
-            {/* Top decorative glow */}
-            <div style={{
-               position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
-               width: '180px', height: '180px', background: 'var(--brand-yellow)',
-               filter: 'blur(80px)', opacity: 0.12, borderRadius: '50%', pointerEvents: 'none'
-            }} />
-            
-            {isSignupSuccess ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', padding: '20px 0', animation: 'modalScaleUp 0.5s ease' }}>
-                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--brand-yellow)', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 30px rgba(235, 215, 63, 0.4)' }}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--deep-black)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                       <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                 </div>
-                 <h2 style={{ fontFamily: "'Panchang', sans-serif", fontSize: '1.4rem', color: 'var(--brand-yellow)' }}>ACCOUNT SECURED</h2>
-                 <p style={{ fontFamily: "'Clash Display', sans-serif", color: 'rgba(255,255,255,0.7)' }}>Loading your session...</p>
-              </div>
-            ) : (
-              <>
-                <div style={{
-                   width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(235, 215, 63, 0.1)',
-                   display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 20px',
-                   border: '1px solid rgba(235, 215, 63, 0.3)', animation: 'glowPulse 3s infinite'
-                }}>
-                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-yellow)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                   </svg>
-                </div>
+      {/* Profile Widget moved to control-buttons-wrapper */}
 
-                <h2 style={{ fontFamily: "'Panchang', sans-serif", fontSize: '1.6rem', color: 'var(--pure-white)', marginBottom: '10px', letterSpacing: '1px' }}>
-                  LEVEL UP
-                </h2>
-                <p style={{ fontFamily: "'Clash Display', sans-serif", color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', marginBottom: '30px', lineHeight: 1.5 }}>
-                  You're out of free trials. Create your Dripp account to continue your run and save your scores.
-                </p>
-                
-                <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="text" 
-                      className="modern-input"
-                      placeholder="Player Name" 
-                      value={signupName}
-                      onChange={e => setSignupName(e.target.value)}
-                      required
-                      style={{
-                        width: '100%', padding: '16px 20px', borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'white', fontFamily: "'Clash Display', sans-serif", fontSize: '1rem',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="email" 
-                      className="modern-input"
-                      placeholder="Email Address" 
-                      value={signupEmail}
-                      onChange={e => setSignupEmail(e.target.value)}
-                      required
-                      style={{
-                        width: '100%', padding: '16px 20px', borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'white', fontFamily: "'Clash Display', sans-serif", fontSize: '1rem',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  
-                  <button type="submit" disabled={isSubmitting} className="modern-btn" style={{
-                    marginTop: '10px', width: '100%', padding: '18px', borderRadius: '12px',
-                    background: isSubmitting ? 'rgba(255,255,255,0.1)' : 'var(--brand-yellow)', 
-                    border: 'none',
-                    color: isSubmitting ? 'rgba(255,255,255,0.5)' : 'var(--deep-black)', 
-                    fontFamily: "'Panchang', sans-serif", fontSize: '0.9rem', cursor: isSubmitting ? 'wait' : 'pointer',
-                    letterSpacing: '1px'
-                  }}>
-                    {isSubmitting ? 'INITIALIZING...' : 'CONTINUE RUN'}
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <AuthModal 
+        isOpen={showSignupModal}
+        initialTab={authModalInitialTab}
+        onClose={() => {
+           setShowSignupModal(false);
+           // Let them keep playing if they skip
+           setPlayCount(0);
+           setGameState('playing'); 
+           setIsPaused(false); 
+           setShowShareOptions(false);
+           if (typeof window !== 'undefined' && window.initDrippGame) window.initDrippGame();
+        }}
+        onLoginSuccess={() => {
+           setHasSignedUp(true);
+           setPlayCount(0);
+           const cachedHighScore = localStorage.getItem('dripp_highScore');
+           if (cachedHighScore) highScoreRef.current = parseInt(cachedHighScore, 10);
+           setGameState('playing'); setIsPaused(false); setShowShareOptions(false);
+           if (typeof window !== 'undefined' && window.initDrippGame) window.initDrippGame();
+           
+           // Dispatch event for other components listening
+           if (typeof window !== 'undefined') {
+             window.dispatchEvent(new Event('dripp_login_success'));
+           }
+        }}
+      />
       <style>{`
         @keyframes modalFadeIn {
           0% { opacity: 0; backdrop-filter: blur(0px); }
@@ -1462,9 +1469,17 @@ export default function ComingSoon() {
         .modern-input {
           transition: all 0.3s ease;
         }
+        .modern-input:-webkit-autofill,
+        .modern-input:-webkit-autofill:hover, 
+        .modern-input:-webkit-autofill:focus, 
+        .modern-input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #1e1e1e inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
         .modern-input:focus {
           border-color: var(--brand-yellow) !important;
-          box-shadow: 0 0 15px rgba(235, 215, 63, 0.15) !important;
+          box-shadow: 0 0 15px rgba(235, 63, 63, 0.15) !important;
           background: rgba(255, 255, 255, 0.08) !important;
         }
         .modern-btn {
@@ -1489,7 +1504,7 @@ export default function ComingSoon() {
            justify-content: center !important;
            align-items: center !important;
            transition: background 0.1s ease, border 0.1s ease, width 0.15s ease, height 0.15s ease, box-shadow 0.15s ease !important;
-           z-index: 100000 !important;
+           z-index: 9999999 !important;
            pointer-events: none !important;
            box-shadow: 0 0 20px rgba(235, 215, 63, 0.5) !important;
         }
@@ -1510,13 +1525,88 @@ export default function ComingSoon() {
       `}</style>
       {!isTouch && <CustomCursor />}
 
-      {/* Control Buttons (Top Left) */}
-      <div style={{ position: 'absolute', top: '5%', left: '5%', zIndex: 4, display: 'flex', gap: '15px' }}>
+      <style>{`
+        @media (max-width: 768px) {
+           .control-buttons-wrapper {
+              top: 2% !important;
+              left: 4% !important;
+           }
+           .control-buttons-wrapper > div {
+              margin-top: 5px !important;
+           }
+           .desktop-profile-wrapper {
+              position: relative !important;
+              top: 0 !important;
+              right: auto !important;
+              margin-top: 5px !important;
+           }
+           .desktop-game-ui { display: none !important; }
+           .dripp-game-ui {
+              top: 2% !important;
+              bottom: auto !important;
+              right: 4% !important;
+              gap: 0 !important;
+           }
+           .leaderboard-block {
+              order: 2;
+              margin-bottom: 0 !important;
+              margin-top: 0px !important;
+           }
+           .score-block {
+              order: 1;
+           }
+           .highest-score-text, .highest-score-value, .dripp-guidelines {
+              display: none !important;
+           }
+        }
+        @media (min-width: 769px) {
+           .mobile-game-ui { display: none !important; }
+        }
+      `}</style>
+
+      {/* Control Buttons (Top Left on desktop, Top Left grouped on mobile) */}
+      <div className="control-buttons-wrapper" style={{ position: 'absolute', top: '20px', left: '30px', zIndex: 9999, display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="desktop-profile-wrapper" style={{ position: 'fixed', top: '20px', right: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <ProfileWidget 
+            onLoginClick={(tab = 'signup') => {
+               setAuthModalInitialTab(tab);
+               setShowSignupModal(true);
+            }} 
+          />
+          {activeGame === 'breaker' && (
+            <div className="desktop-game-ui" style={{
+              fontFamily: "'Clash Display', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+              opacity: isFadingOut ? 0 : 1, transition: 'opacity 0.5s ease', marginTop: '10px'
+            }}>
+              <div style={{ fontSize: 'clamp(0.6rem, 2vw, 0.8rem)', letterSpacing: '2px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                {activeGame === 'dripp' ? 'Score' : `Level ${breakerLevel}`}
+              </div>
+              {activeGame === 'breaker' && (
+                <div style={{ fontSize: 'clamp(0.5rem, 1.5vw, 0.65rem)', letterSpacing: '1px', color: 'var(--brand-yellow)', textTransform: 'uppercase', opacity: 0.8, marginBottom: '5px' }}>
+                  {(() => {
+                     switch(breakerLevel % 20) {
+                        case 1: return "The Cluster"; case 2: return "Triangle"; case 3: return "Hollow Box";
+                        case 4: return "Checkerboard"; case 5: return "The X"; case 6: return "Twin Pillars";
+                        case 7: return "Diamond"; case 8: return "The V"; case 9: return "Smiley";
+                        case 10: return "Mini-Boss Wall"; case 11: return "Arrow Up"; case 12: return "Hourglass";
+                        case 13: return "Invader"; case 14: return "The Cross"; case 15: return "Double Diamonds";
+                        case 16: return "Stairway"; case 17: return "The Spiral"; case 18: return "Fortress";
+                        case 19: return "DNA Twist"; case 0: return "Ultimate Boss"; default: return "";
+                     }
+                  })()}
+                </div>
+              )}
+                <div className="score-counter-element" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 600, color: gameState === 'failed' ? '#eb3f3f' : 'var(--brand-yellow)', lineHeight: 1, textShadow: gameState === 'failed' ? '0 0 20px rgba(235, 63, 63, 0.4)' : '0 0 20px rgba(235, 215, 63, 0.4)', display: 'inline-block' }}>
+                  {breakerScore}
+                </div>
+            </div>
+          )}
+        </div>
         {activeGame !== 'none' && gameState === 'playing' && !isPaused && (
           <div 
             onClick={() => setIsPaused(true)}
             style={{
-              width: '40px', height: '40px', marginTop: '15px',
+              width: '40px', height: '40px',
               borderRadius: '50%', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', 
               border: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center',
               color: 'white', transition: 'all 0.3s ease'
@@ -1534,7 +1624,7 @@ export default function ComingSoon() {
         <div 
           onClick={() => setIsHelpOpen(true)}
           style={{
-            width: '40px', height: '40px', marginTop: activeGame !== 'none' && gameState === 'playing' && !isPaused ? '15px' : '0',
+            width: '40px', height: '40px',
             borderRadius: '50%', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', 
             border: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center',
             color: 'white', fontFamily: "'Clash Display', sans-serif", fontSize: '1.2rem', transition: 'all 0.3s ease'
@@ -1668,26 +1758,28 @@ export default function ComingSoon() {
         }}>
            <div className="ui-popup-enter" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
              <h2 style={{ fontFamily: "'Panchang', sans-serif", color: 'var(--pure-white)', fontSize: '3rem', margin: 0, marginBottom: '20px' }}>PAUSED</h2>
-             <PrimaryButton onClick={() => {
-                 gsap.to('.ui-overlay', { opacity: 0, duration: 0.2, onComplete: () => {
-                     setIsPaused(false);
-                     gsap.set('.ui-overlay', { opacity: 1 });
-                 }});
-             }}>Resume Game</PrimaryButton>
-           {!showShareOptions ? (
-             <PrimaryButton onClick={prepareShare}>
-               Brag your score
-             </PrimaryButton>
-           ) : (
-             <div className="share-container" style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
-               <PrimaryButton onClick={() => handleShare('download')} disabled={isCapturing}>
-                 {isCapturing ? "Preparing..." : "Download"}
-               </PrimaryButton>
-               <PrimaryButton onClick={() => handleShare('instagram')} disabled={isCapturing}>
-                 {isCapturing ? "Preparing..." : "IG Story"}
-               </PrimaryButton>
+             <div className="action-buttons-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+               <PrimaryButton onClick={() => {
+                   gsap.to('.ui-overlay', { opacity: 0, duration: 0.2, onComplete: () => {
+                       setIsPaused(false);
+                       gsap.set('.ui-overlay', { opacity: 1 });
+                   }});
+               }}>Resume Game</PrimaryButton>
+               {!showShareOptions ? (
+                 <PrimaryButton onClick={prepareShare}>
+                   Brag your score
+                 </PrimaryButton>
+               ) : (
+                 <div className="share-container" style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                   <PrimaryButton onClick={() => handleShare('download')} disabled={isCapturing}>
+                     {isCapturing ? "Preparing..." : "Download"}
+                   </PrimaryButton>
+                   <PrimaryButton onClick={() => handleShare('instagram')} disabled={isCapturing}>
+                     {isCapturing ? "Preparing..." : "IG Story"}
+                   </PrimaryButton>
+                 </div>
+               )}
              </div>
-           )}
            </div>
         </div>
       )}
@@ -1746,7 +1838,7 @@ export default function ComingSoon() {
                )}
              </div>
 
-             <div style={{ marginTop: '40px', display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+             <div className="action-buttons-container" style={{ marginTop: '40px', display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
                {activeGame === 'breaker' ? (
                  <>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1924,7 +2016,7 @@ export default function ComingSoon() {
                </span>
              </div>
 
-             <div style={{ marginTop: '40px', display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+             <div className="action-buttons-container" style={{ marginTop: '40px', display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
                <PrimaryButton onClick={() => {
                   gsap.to('.ui-overlay', { opacity: 0, scale: 0.95, duration: 0.3, ease: 'power2.inOut', onComplete: () => {
                       breakerLevelRef.current += 1;
@@ -1951,17 +2043,17 @@ export default function ComingSoon() {
         }} 
       />
 
-      {/* Game UI Score */}
-      {activeGame !== 'none' && (
-        <div className="game-ui" style={{
+      {/* Breaker Mobile Game UI Score */}
+      {activeGame === 'breaker' && (
+        <div className="game-ui mobile-game-ui" style={{
           position: 'absolute', top: '5%', right: '5%', zIndex: 2,
           fontFamily: "'Clash Display', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
           opacity: isFadingOut ? 0 : 1,
           transition: 'opacity 0.5s ease'
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <div className="score-block" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div style={{ fontSize: 'clamp(0.6rem, 2vw, 0.8rem)', letterSpacing: '2px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
-              {activeGame === 'dripp' ? 'Score' : `Level ${breakerLevel}`}
+              Level {breakerLevel}
             </div>
             {activeGame === 'breaker' && (
               <div style={{ fontSize: 'clamp(0.5rem, 1.5vw, 0.65rem)', letterSpacing: '1px', color: 'var(--brand-yellow)', textTransform: 'uppercase', opacity: 0.8, marginBottom: '5px' }}>
@@ -2002,6 +2094,103 @@ export default function ComingSoon() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Dripp Unified Game UI Score (Bottom Right) */}
+      {activeGame === 'dripp' && (
+        <div className="game-ui dripp-game-ui" style={{
+          position: 'absolute', bottom: '30px', right: '30px', zIndex: 2,
+          fontFamily: "'Clash Display', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
+          opacity: isFadingOut ? 0 : 1,
+          transition: 'opacity 0.5s ease'
+        }}>
+          {/* High Score / Leaderboard Display */}
+          <div className="leaderboard-block" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '10px' }}>
+             <span className="highest-score-text" style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1px' }}>Your Highest Score</span>
+             <span className="highest-score-value" style={{ fontSize: '1.4rem', color: 'var(--brand-yellow)', fontWeight: 'bold' }}>{highScoreRef.current}</span>
+             <button 
+                onClick={() => setShowLeaderboard(true)}
+                style={{
+                   marginTop: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                   color: 'var(--brand-yellow)', padding: '4px 10px', borderRadius: '8px',
+                   fontFamily: "'Clash Display', sans-serif", fontSize: '0.7rem', cursor: 'pointer', transition: 'all 0.2s ease', textTransform: 'uppercase'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+             >
+                View Leaderboard
+             </button>
+          </div>
+
+          <div className="score-block" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ fontSize: 'clamp(0.6rem, 2vw, 0.8rem)', letterSpacing: '2px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+              Score
+            </div>
+            <div className="score-counter-element" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 600, color: gameState === 'failed' ? '#eb3f3f' : 'var(--brand-yellow)', lineHeight: 1, textShadow: gameState === 'failed' ? '0 0 20px rgba(235, 63, 63, 0.4)' : '0 0 20px rgba(235, 215, 63, 0.4)', display: 'inline-block' }}>
+              {score}
+            </div>
+            <div className="dripp-guidelines" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginTop: '5px' }}>
+              <div style={{ fontSize: 'clamp(0.4rem, 1vw, 0.6rem)', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}>Keep scoring to level up</div>
+              <div style={{ fontSize: 'clamp(0.4rem, 1vw, 0.6rem)', color: '#eb3f3f', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Caution: Avoid bombs</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLeaderboard && (
+        <div style={{
+           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999,
+           display: 'flex', justifyContent: 'center', alignItems: 'center',
+           background: 'rgba(5, 5, 5, 0.6)', backdropFilter: 'blur(12px)',
+           animation: 'modalFadeIn 0.3s forwards', padding: '20px'
+        }}>
+           <div style={{
+              background: 'linear-gradient(145deg, #161616, #0e0e0e)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px',
+              padding: '30px', width: '100%', maxWidth: '350px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center'
+           }}>
+              <h2 style={{ color: 'var(--brand-yellow)', fontFamily: "'Panchang', sans-serif", fontSize: '1.2rem', marginBottom: '20px', textTransform: 'uppercase' }}>
+                 Leaderboard
+              </h2>
+               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                 {leaderboardLoading ? (
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Clash Display', sans-serif", textAlign: 'center' }}>
+                       Loading scores...
+                    </div>
+                 ) : leaderboardError ? (
+                    <div style={{ color: '#eb3f3f', fontFamily: "'Clash Display', sans-serif", textAlign: 'center', fontSize: '0.85rem' }}>
+                       Failed to load scores.<br/>(Database column 'highscore' might be missing)
+                    </div>
+                 ) : leaderboardData.length > 0 ? leaderboardData.map((player, index) => (
+                    <div key={index} style={{
+                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                       padding: '10px 15px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px'
+                    }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ color: index === 0 ? 'var(--brand-yellow)' : 'rgba(255,255,255,0.5)', fontFamily: "'Panchang', sans-serif", fontSize: '0.9rem' }}>#{index + 1}</span>
+                          <span style={{ color: 'white', fontFamily: "'Clash Display', sans-serif", fontSize: '1rem' }}>{player.name}</span>
+                       </div>
+                       <span style={{ color: 'var(--brand-yellow)', fontFamily: "'Panchang', sans-serif", fontSize: '1rem' }}>{player.highscore}</span>
+                    </div>
+                 )) : (
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Clash Display', sans-serif", textAlign: 'center' }}>
+                       No scores found. Be the first!
+                    </div>
+                 )}
+              </div>
+              <button 
+                 onClick={() => setShowLeaderboard(false)}
+                 style={{
+                    marginTop: '25px', padding: '10px 20px', background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '12px',
+                    cursor: 'pointer', fontFamily: "'Clash Display', sans-serif", width: '100%'
+                 }}
+              >
+                 Close
+              </button>
+           </div>
         </div>
       )}
 

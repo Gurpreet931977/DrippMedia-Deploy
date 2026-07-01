@@ -5,8 +5,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import Link from "next/link";
 import Preloader from "../components/Preloader";
+import ProfileWidget from "../components/ProfileWidget";
+import AuthModal from "../components/AuthModal";
 
 export default function Page() {
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   useEffect(() => {
     // Register GSAP
@@ -2164,6 +2167,9 @@ export default function Page() {
           </a>
         </div>
       </li>
+      <li style={{ marginLeft: '15px' }}>
+         <ProfileWidget onLoginClick={() => setShowAuthModal(true)} />
+      </li>
       <li className="theme-switch-wrapper">
         <button id="theme-switch" className="theme-switch-btn" aria-label="Toggle Theme">
           <div className="ts-inner">
@@ -2188,6 +2194,16 @@ export default function Page() {
       <div className="line3" />
     </div>
   </nav>
+
+  <AuthModal 
+      isOpen={showAuthModal} 
+      onClose={() => setShowAuthModal(false)}
+      onLoginSuccess={() => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('dripp_login_success'));
+        }
+      }}
+  />
   <div className="cursor" />
   <canvas id="trail-canvas" />
   <div className="velocity-gauge">
